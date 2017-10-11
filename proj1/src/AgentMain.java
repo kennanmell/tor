@@ -1,3 +1,5 @@
+package src;
+
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 

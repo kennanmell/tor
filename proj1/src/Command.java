@@ -1,0 +1,5 @@
+package src;
+
+enum Command {
+  REGISTER, REGISTERED, FETCH, FETCHRESPONSE, UNREGISTER, PROBE, ACK
+}

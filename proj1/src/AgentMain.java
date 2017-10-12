@@ -73,7 +73,11 @@ public class AgentMain {
     probeHandler.start();
 
     // Prepare for user commands.
-    RequestHandler.configureInstance(MAGIC_ID, writeSocket, serverAddress, serverPort);
+    RequestHandler.setServer(serverAddress, serverPort);
+    // Use only one attempt for each request because we print an error message
+    // each time a request fails. A custom retry mechanism is implemented by
+    // AgentMain.requestWithRetries.
+    RequestHandler requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
     System.out.println("Running the tor61 registration client. Version 1.");
     System.out.println(String.format(
@@ -113,14 +117,12 @@ public class AgentMain {
           Service service = new Service(localhostIp, iport, data, serviceName);
           Object result = requestWithRetries(new Callable<Object>() {
             public Object call() throws ProtocolException {
-              return RequestHandler.sharedInstance().registerService(service);
+              return requestHandler.registerService(service);
             }
           }, Command.REGISTER);
 
           if (result != null) {
-            System.out.println(String.format(
-                "Register %s:%d successful: lifetime = %d.",
-                localhostIp.toString(), iport, service.getLifetime()));
+            System.out.println("Registed " + service + ". Lifetime: " + service.getLifetime());
           }
         } else if (command[0].equals("u") && command.length == 2) {
           // Unregister portnum
@@ -138,13 +140,12 @@ public class AgentMain {
 
           Object result = requestWithRetries(new Callable<Object>() {
             public Object call() throws ProtocolException {
-              return RequestHandler.sharedInstance().unregisterService(service);
+              return requestHandler.unregisterService(service);
             }
           }, Command.UNREGISTER);
 
           if (result != null) {
-            System.out.println(String.format(
-                "Unregister %s:%d successful.", localhostIp.toString(), iport));
+            System.out.println("Unregisted service on port " + service.iport + ".");
           }
         } else if (command[0].equals("f") && command.length == 2) {
           // Fetch <name prefix>
@@ -154,7 +155,7 @@ public class AgentMain {
           // See if registration service is alive.
           Object result = requestWithRetries(new Callable<Object>() {
             public Object call() throws ProtocolException {
-              return RequestHandler.sharedInstance().probeServer();
+              return requestHandler.probeServer();
             }
           }, Command.PROBE);
 

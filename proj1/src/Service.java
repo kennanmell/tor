@@ -55,4 +55,9 @@ public class Service {
   public long getLastRegistrationTimeMs() {
     return this.lastRegistrationTimeMs;
   }
+
+  @Override
+  public String toString() {
+    return String.format("service %s at %s:%d", name, ip.toString(), iport);
+  }
 }

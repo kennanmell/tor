@@ -3,6 +3,7 @@ package src;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 
 public class ProbeHandlerThread extends Thread {
   private DatagramSocket socket;
@@ -39,6 +40,12 @@ public class ProbeHandlerThread extends Thread {
                                                        request.getPort());
           socket.send(response);
         }
+      } catch (SocketException e) {
+        // Presumably interrupted by the main thread closing the socket when the
+        // program terminates. Since there's no way to confirm that this was
+        // the cause of the exception, if the exception was caused by something
+        // else, it is a fatal error and we still have to terminate.
+        System.exit(0);
       } catch (IOException e) {
         throw new IllegalStateException();
       }

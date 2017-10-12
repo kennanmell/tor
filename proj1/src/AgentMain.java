@@ -47,7 +47,7 @@ public class AgentMain {
     try {
       localhostIp = InetAddress.getLocalHost();
     } catch (UnknownHostException e) {
-      System.out.println("unable to get localhost ip");
+      System.out.println("fatal error: unable to get localhost ip");
       return;
     }
 
@@ -75,9 +75,15 @@ public class AgentMain {
     // Prepare for user commands.
     RequestHandler.configureInstance(MAGIC_ID, writeSocket, serverAddress, serverPort);
 
+    System.out.println("Running the tor61 registration client. Version 1.");
+    System.out.println(String.format(
+        "Connected to server at %s:%d.", serverAddress.toString(), serverPort));
+    System.out.println("Ready. Type \"h\" for command list.");
+
     // Run input loop until user terminates.
     final Scanner scanner = new Scanner(System.in);
     while (true) {
+      System.out.print("> ");
       try {
         String[] command = scanner.nextLine().split("\\s+");
         if (command.length == 0) {
@@ -155,6 +161,14 @@ public class AgentMain {
           if (result != null) {
             System.out.println("Probe succeeded.");
           }
+        } else if (command[0].equals("h") && command.length == 1) {
+          System.out.println("Commands:");
+          System.out.println("REGISTER: r <portnum> <data> <serviceName>");
+          System.out.println("UNREGISTER: u <portnum>");
+          System.out.println("FETCH: f <name prefix>");
+          System.out.println("PROBE: p");
+          System.out.println("HELP: h");
+          System.out.println("QUIT: q");
         } else if (command[0].equals("q") && command.length == 1) {
           // Quit.
           writeSocket.close();

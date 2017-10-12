@@ -6,16 +6,33 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 
+/** Singleton class that handles one request to the server at a time.
+    Can be used to register or unregister a Service, probe the server, or
+    fetch registrations from the server. The shared instance must be
+    configured with `configureInstance` before it can be used. It cannot
+    be reconfigured. */
 public class RequestHandler {
-
-  private int magicId;
+  // The maximum number of bytes in a UDP packet (excluding the default header).
+  private static final int MAX_UDP_PACKET_SIZE = 65507;
+  // A byte array of length 2 representing the ID used to authenticate with the server.
+  private byte[] magicId;
+  // The current sequence number. Increments each time a request is successfully
+  // processed by the server.
   private byte sequenceNo;
+  // The IP address of the server.
   private InetAddress serverAddress;
+  // The port of the server.
   private int serverPort;
+  // The socket used to communicate with the server.
   private DatagramSocket socket;
 
+  // The shared RequestHandler instance.
   private static RequestHandler sharedInstance = null;
 
+  /** Gets the shared `RequestHandler` instance.
+     @return The RequestHandler instance.
+     @throws `IllegalStateException` if the instance has not been configured
+     with */
   public static RequestHandler sharedInstance() {
     if (sharedInstance == null) {
       throw new IllegalStateException();
@@ -23,6 +40,11 @@ public class RequestHandler {
     return sharedInstance;
   }
 
+  /** Configures the shared `RequestHandler` instance.
+      @param magicId The 2-byte id used to authenticate with the server represented as an int.
+      @param socket The `DatagramSocket` used to communicate with the server.
+      @param serverAddress The IP of the server.
+      @param serverPort The port number of the server. */
   public static RequestHandler configureInstance(int magicId,
                                                  DatagramSocket socket,
                                                  InetAddress serverAddress,
@@ -31,22 +53,35 @@ public class RequestHandler {
       throw new IllegalStateException();
     }
     sharedInstance = new RequestHandler();
-    sharedInstance.magicId = magicId;
+    sharedInstance.magicId = new byte[2];
+    sharedInstance.magicId[0] = (byte) (magicId >> 8);
+    sharedInstance.magicId[1] = (byte) magicId;
     sharedInstance.socket = socket;
     sharedInstance.serverAddress = serverAddress;
     sharedInstance.serverPort = serverPort;
     return sharedInstance;
   }
 
+  /** Sole initializer. */
   private RequestHandler() {
     this.sequenceNo = 0;
   }
 
-  public boolean registerService(Service service) throws ServiceException {
-    byte[] buf = new byte[200];
+  /** Registers a `Service` with the server.
+      @param service The `Service` to register.
+      @return `true` if the registration was confirmed by the server, `false` if
+              it was not, presumably because the request(s) timed out.
+      @throws ProtocolException If the server responds with an invalid packet
+              or there is another IO error. */
+  public boolean registerService(Service service) throws ProtocolException {
+    final int packetSize = 15 + service.name.length(); // 15-byte header
+    if (packetSize > MAX_UDP_PACKET_SIZE) {
+      // A packet too large to send is a protocol violation.
+      throw new ProtocolException();
+    }
+    byte[] buf = new byte[packetSize];
 
-    buf[0] = (byte) (magicId >> 8);
-    buf[1] = (byte) magicId;
+    System.arraycopy(magicId, 0, buf, 0, 2);
 
     buf[2] = sequenceNo;
     buf[3] = commandToByte(Command.REGISTER);
@@ -82,19 +117,24 @@ public class RequestHandler {
         // TODO: add automatic re-registration before expiration
         return true;
       } else {
-        throw new ServiceException();
+        throw new ProtocolException();
       }
     } catch (SocketTimeoutException e) {
       return false;
     } catch (IOException e) {
-      throw new ServiceException();
+      throw new ProtocolException();
     }
   }
 
-  public boolean unregisterService(Service service) throws ServiceException {
+  /** Unregisters a `Service` with the server.
+      @param service The `Service` to unregister.
+      @return `true` if the unregistration was confirmed by the server, `false` if
+              it was not, presumably because the request(s) timed out.
+      @throws ProtocolException If the server responds with an invalid packet
+              or there is another IO error. */
+  public boolean unregisterService(Service service) throws ProtocolException {
     byte[] buf = new byte[10];
-    buf[0] = (byte) (magicId >> 8);
-    buf[1] = (byte) magicId;
+    System.arraycopy(magicId, 0, buf, 0, 2);
     buf[2] = sequenceNo;
     buf[3] = commandToByte(Command.UNREGISTER);
     System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4);
@@ -113,22 +153,23 @@ public class RequestHandler {
         sequenceNo++;
         return true;
       } else {
-        throw new ServiceException();
+        throw new ProtocolException();
       }
     } catch (SocketTimeoutException e) {
       return false;
     } catch (IOException e) {
-      throw new ServiceException();
+      throw new ProtocolException();
     }
   }
 
-  // Returns true if and only if the probe succeeded (server responded with ACK).
-  // Throws a ServiceException if the request fails for any reason besides a timeout
-  // (a timeout causes a false return).
-  public boolean probeServer() throws ServiceException {
+  /** Probes the server.
+      @return `true` if the server responds to the probe, `false` if
+              it does not, presumably because the request(s) timed out.
+      @throws ProtocolException If the server responds with an invalid packet
+              or there is another IO error. */
+  public boolean probeServer() throws ProtocolException {
     byte[] buf = new byte[4];
-    buf[0] = (byte) (magicId >> 8);
-    buf[1] = (byte) magicId;
+    System.arraycopy(magicId, 0, buf, 0, 2);
     buf[2] = sequenceNo;
     buf[3] = commandToByte(Command.PROBE);
     try {
@@ -144,22 +185,27 @@ public class RequestHandler {
         sequenceNo++;
         return true;
       } else {
-        throw new ServiceException();
+        throw new ProtocolException();
       }
     } catch (SocketTimeoutException e) {
       return false;
     } catch (IOException e) {
-      throw new ServiceException();
+      throw new ProtocolException();
     }
   }
 
+  /** Returns `true` if and only if the magic ID and sequence number in
+      `response` match the magic ID and sequence number of the RequestHandler. */
   private boolean responseIsValid(DatagramPacket response) {
     final byte[] buf = response.getData();
-    return buf[0] == ((byte) (magicId >> 8)) &&
-           buf[1] == ((byte) magicId) &&
+    return buf[0] == magicId[0] &&
+           buf[1] == magicId[1] &&
            buf[2] == sequenceNo;
   }
 
+  /** Converts the header in a `DatagramPacket` to a `Command`.
+      @return A `Command` associated with the packet.
+      @throws IllegalArgumentException if the `Command` is not recognized. */
   private Command commandForResponse(DatagramPacket response) {
     switch (response.getData()[3]) {
     case 1: return Command.REGISTER;
@@ -173,6 +219,9 @@ public class RequestHandler {
     }
   }
 
+  /** Converts a `Command` to bytes that can be sent in a packet.
+      @return A `byte` corresponding to the `Command`.
+      @throws IllegalArgumentException if the `Command` is not recognized. */
   private byte commandToByte(Command command) {
     switch(command) {
     case REGISTER:      return 1;

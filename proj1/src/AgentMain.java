@@ -8,9 +8,16 @@ import java.util.concurrent.Callable;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+/** Runs a command-line interface that allows the user to communicate with
+    a server that provides and registers information about various ips and ports.
+    The application that communicates with the server on behalf of the user
+    is referred to as an agent. */
 public class AgentMain {
+  /// A 2-byte authentication token represented as an int.
   public static final int MAGIC_ID = 0xC461;
+  /// The maximum number of ms to wait before timing out when waiting for a server response.
   public static final int REQUEST_TIMEOUT_MS = 5000;
+  /// The maximum number of times to send a request to the server before giving up.
   public static final int MAX_REQUEST_TRIES = 3;
 
   public static void main(String[] args) {
@@ -92,15 +99,14 @@ public class AgentMain {
             continue;
           }
           try {
-            data = Integer.parseInt(command[2]);
+            data = (int) Long.parseLong(command[2]); // parse unsigned int
           } catch (NumberFormatException e) {
-            System.out.println(Integer.MAX_VALUE);
             System.out.println("Invalid data for register command.");
             continue;
           }
           Service service = new Service(localhostIp, iport, data, serviceName);
           Object result = requestWithRetries(new Callable<Object>() {
-            public Object call() throws ServiceException {
+            public Object call() throws ProtocolException {
               return RequestHandler.sharedInstance().registerService(service);
             }
           }, Command.REGISTER);
@@ -125,7 +131,7 @@ public class AgentMain {
           Service service = new Service(localhostIp, iport, 0, "");
 
           Object result = requestWithRetries(new Callable<Object>() {
-            public Object call() throws ServiceException {
+            public Object call() throws ProtocolException {
               return RequestHandler.sharedInstance().unregisterService(service);
             }
           }, Command.UNREGISTER);
@@ -141,7 +147,7 @@ public class AgentMain {
           // Probe.
           // See if registration service is alive.
           Object result = requestWithRetries(new Callable<Object>() {
-            public Object call() throws ServiceException {
+            public Object call() throws ProtocolException {
               return RequestHandler.sharedInstance().probeServer();
             }
           }, Command.PROBE);
@@ -168,6 +174,15 @@ public class AgentMain {
     }
   }
 
+  /** Performs a `Callable` function associated with a `Command`. If the function
+      returns `null` or `false`, it retries up to `MAX_REQUEST_TRIES` times.
+      Does not retry if a `ProtocolException` is thrown. Prints a message to
+      stdout whenever a failure or timeout occurs.
+      @param requestHandlerFunc The function to execute up to `MAX_REQUEST_TRIES` times.
+      @param type The `Command` type associated with `requestHandlerFunc`.
+      @return The Object returned by the `requestHandlerFunc`, or `null` if
+              the function never completed successfully.
+      @throws IllegalStateException If an unexpected exception is thrown. */
   private static Object requestWithRetries(Callable<Object> requestHandlerFunc, Command type) {
     for (int i = 0; i < MAX_REQUEST_TRIES; i++) {
       try {
@@ -179,7 +194,7 @@ public class AgentMain {
         } else {
           return result;
         }
-      } catch (ServiceException e) {
+      } catch (ProtocolException e) {
         System.out.println(String.format(
             "Received invalid response to %s message.", type.toString()));
         return null;
@@ -189,6 +204,7 @@ public class AgentMain {
     }
     System.out.println(String.format(
         "Sent %d %s messages but got no reply.", MAX_REQUEST_TRIES, type.toString()));
+    System.out.println(String.format("%s command failed.", type.toString()));
     return null;
   }
 }

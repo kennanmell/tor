@@ -19,6 +19,10 @@ public class Service {
   /// The last time this Service was registered with the server.
   private long lastRegistrationTimeMs;
 
+  public Service(InetAddress ip, int iport, int data) {
+    Service(ip, iport, data, null);
+  }
+
   /** Create a Service with a specified IP, port, data, and name.
       @throws IllegalArgumentException if InetAddress is null, port < 0,
       or name is null. */
@@ -58,6 +62,10 @@ public class Service {
 
   @Override
   public String toString() {
-    return String.format("service %s at %s:%d", name, ip.toString(), iport);
+    if (name == null) {
+      return String.format("service data %d at %d:%d", data, ip, iport);
+    } else {
+      return String.format("service %s at %s:%d", name, ip, iport);
+    }
   }
 }

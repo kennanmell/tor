@@ -122,7 +122,44 @@ public class RequestHandler {
               or there is another IO error. */
   public Service[] fetchRegistrationsBeginningWithString(String start) throws ProtocolException {
     // TODO: implement this
-    throw new UnsupportedOperationException();
+    int nameLength = start.length();
+    byte[] buf = filledBufferOfSize(5 + nameLength);
+    buf[3] = Command.FETCH.toByte();
+    buf[4] = (byte) nameLength;
+    System.arraycopy(start, 0, buf, 6, nameLength);
+    for (int i = 0; i < maxAttempts; i++) {
+      try {
+        final DatagramPacket request =
+            new DatagramPacket(buf, buf.length, serverAddress, serverPort);
+        socket.send(request);
+        // Block on ack response.
+        // try once with 512, then increase to max
+        final DatagramPacket response =
+            new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
+        socket.receive(response);
+        if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == 
+            Command.FETCHRESPONSE) {
+          sequenceNo++;
+          byte numServices = response.getData()[3];
+          Service[] services = new service[numServices];
+          for (int i = 0; i < numServices; i++) {
+            byte[] ip = new byte[4];
+            InetAddress ip = InetAddress.getByAddress(System.arraycopy(buf, (5 + (10*i)), ip, 0, 4));
+            int port = (buf[9 + (10 * i)] << 8) | (buf[10 + (10 * i)]);
+            int data = (buf[11 + (10 * i)] << 24) | (buf[12 + (10 * i)] << 16) | 
+                       (buf[13 + (10 * i)] << 8) | (bug[14 + (10 * i)]);
+            services[i] = new Service(ip, port, data)
+          }
+          return services;
+        } else {
+          throw new ProtocolException();
+        }
+      } catch (SocketTimeoutException e) {
+        continue;
+      } catch (IOException e) {
+        throw new ProtocolException();
+      }
+    }
   }
 
   /** Unregisters a `Service` with the server.

@@ -76,7 +76,7 @@ public class RequestHandler {
 
       // Make the buffer to send.
       byte[] buf = filledBufferOfSize(packetSize); // header
-      buf[3] = commandToByte(Command.REGISTER); // command
+      buf[3] = Command.REGISTER.toByte(); // command
       System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4); // ip
       System.arraycopy(ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
       System.arraycopy(ByteBuffer.allocate(4).putInt(service.data).array(), 0, buf, 10, 4); // data
@@ -94,7 +94,7 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[6], 6);
           socket.receive(response);
-          if (responseIsValid(response) && commandForResponse(response) == Command.REGISTERED) {
+          if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == Command.REGISTERED) {
             sequenceNo++;
             service.setLifetime(
                 (response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF));
@@ -135,7 +135,7 @@ public class RequestHandler {
     synchronized (lock) {
       // Make the buffer to send.
       byte[] buf = filledBufferOfSize(10); // header
-      buf[3] = commandToByte(Command.UNREGISTER); // command
+      buf[3] = Command.UNREGISTER.toByte(); // command
       System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4); // ip
       System.arraycopy(ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
 
@@ -150,7 +150,7 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[4], 4);
           socket.receive(response);
-          if (responseIsValid(response) && commandForResponse(response) == Command.ACK) {
+          if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == Command.ACK) {
             sequenceNo++;
             return true;
           } else {
@@ -175,7 +175,7 @@ public class RequestHandler {
     synchronized (lock) {
       // Make the buffer to send.
       byte[] buf = filledBufferOfSize(4); // header
-      buf[3] = commandToByte(Command.PROBE); // command
+      buf[3] = Command.PROBE.toByte(); // command
 
       // Try to send the buffer and get a response.
       for (int i = 0; i < maxAttempts; i++) {
@@ -188,7 +188,7 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[4], 4);
           socket.receive(response);
-          if (responseIsValid(response) && commandForResponse(response) == Command.ACK) {
+          if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == Command.ACK) {
             sequenceNo++;
             return true;
           } else {
@@ -220,37 +220,5 @@ public class RequestHandler {
     return buf[0] == magicId[0] &&
            buf[1] == magicId[1] &&
            buf[2] == sequenceNo;
-  }
-
-  /** Converts the header in a `DatagramPacket` to a `Command`.
-      @return A `Command` associated with the packet.
-      @throws IllegalArgumentException if the `Command` is not recognized. */
-  private Command commandForResponse(DatagramPacket response) {
-    switch (response.getData()[3]) {
-    case 1: return Command.REGISTER;
-    case 2: return Command.REGISTERED;
-    case 3: return Command.FETCH;
-    case 4: return Command.FETCHRESPONSE;
-    case 5: return Command.UNREGISTER;
-    case 6: return Command.PROBE;
-    case 7: return Command.ACK;
-    default: throw new IllegalArgumentException();
-    }
-  }
-
-  /** Converts a `Command` to bytes that can be sent in a packet.
-      @return A `byte` corresponding to the `Command`.
-      @throws IllegalArgumentException if the `Command` is not recognized. */
-  private byte commandToByte(Command command) {
-    switch(command) {
-    case REGISTER:      return 1;
-    case REGISTERED:    return 2;
-    case FETCH:         return 3;
-    case FETCHRESPONSE: return 4;
-    case UNREGISTER:    return 5;
-    case PROBE:         return 6;
-    case ACK:           return 7;
-    default: throw new IllegalArgumentException();
-    }
   }
 }

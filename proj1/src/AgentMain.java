@@ -152,7 +152,7 @@ public class AgentMain {
       Service service = new Service(localhostIp, iport, data, serviceName);
 
       if (requestHandler.registerService(service)) {
-        System.out.println("Registered " + service ".");
+        System.out.println("Registered " + service + ".");
         // TODO: request that the service be automatically re-registered.
         return null;
       } else {

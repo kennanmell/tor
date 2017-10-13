@@ -152,7 +152,7 @@ public class AgentMain {
       Service service = new Service(localhostIp, iport, data, serviceName);
 
       if (requestHandler.registerService(service)) {
-        System.out.println("Registed " + service + ". Lifetime: " + service.getLifetime());
+        System.out.println("Registered " + service + ". Lifetime: " + service.getLifetime());
         // TODO: request that the service be automatically re-registered.
         return null;
       } else {

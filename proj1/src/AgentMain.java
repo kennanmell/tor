@@ -8,10 +8,9 @@ import java.util.concurrent.Callable;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-/** Runs a command-line interface that allows the user to communicate with
-    a server that provides and registers information about various ips and ports.
-    The application that communicates with the server on behalf of the user
-    is referred to as an agent. */
+/** Runs a command-line interface that allows the user to act as the client of an
+    agent via a simple command line interface. The agent communicates with
+    a server that provides and registers information about internet services. */
 public class AgentMain {
   /// A 2-byte authentication token represented as an int.
   public static final int MAGIC_ID = 0xC461;

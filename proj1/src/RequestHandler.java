@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
 
 /** Class that handles one request to the server at a time.
     Can be used to register or unregister a Service, probe the server, or
@@ -72,27 +73,17 @@ public class RequestHandler {
         // A packet too large to send is a protocol violation.
         throw new ProtocolException();
       }
-      byte[] buf = new byte[packetSize];
 
-      System.arraycopy(magicId, 0, buf, 0, 2);
+      // Make the buffer to send.
+      byte[] buf = filledBufferOfSize(packetSize); // header
+      buf[3] = commandToByte(Command.REGISTER); // command
+      System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4); // ip
+      System.arraycopy(ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
+      System.arraycopy(ByteBuffer.allocate(4).putInt(service.data).array(), 0, buf, 10, 4); // data
+      buf[14] = (byte) service.name.length(); // name length
+      System.arraycopy(service.name.getBytes(), 0, buf, 15, service.name.length()); // name
 
-      buf[2] = sequenceNo;
-      buf[3] = commandToByte(Command.REGISTER);
-
-      System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4);
-
-      buf[8] = (byte) (service.iport >> 8);
-      buf[9] = (byte) service.iport;
-
-      buf[10] = (byte) (service.data >> 24);
-      buf[11] = (byte) (service.data >> 16);
-      buf[12] = (byte) (service.data >> 8);
-      buf[13] = (byte) (service.data);
-
-      buf[14] = (byte) service.name.length();
-
-      System.arraycopy(service.name.getBytes(), 0, buf, 15, service.name.length());
-
+      // Try to send the buffer and get a response.
       for (int i = 0; i < maxAttempts; i++) {
         try {
           final DatagramPacket request =
@@ -142,14 +133,13 @@ public class RequestHandler {
               or there is another IO error. */
   public boolean unregisterService(Service service) throws ProtocolException {
     synchronized (lock) {
-      byte[] buf = new byte[10];
-      System.arraycopy(magicId, 0, buf, 0, 2);
-      buf[2] = sequenceNo;
-      buf[3] = commandToByte(Command.UNREGISTER);
-      System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4);
-      buf[8] = (byte) (service.iport >> 8);
-      buf[9] = (byte) service.iport;
+      // Make the buffer to send.
+      byte[] buf = filledBufferOfSize(10); // header
+      buf[3] = commandToByte(Command.UNREGISTER); // command
+      System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4); // ip
+      System.arraycopy(ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
 
+      // Try to send the buffer and get a response.
       for (int i = 0; i < maxAttempts; i++) {
         try {
           final DatagramPacket request =
@@ -183,11 +173,11 @@ public class RequestHandler {
               or there is another IO error. */
   public boolean probeServer() throws ProtocolException {
     synchronized (lock) {
-      byte[] buf = new byte[4];
-      System.arraycopy(magicId, 0, buf, 0, 2);
-      buf[2] = sequenceNo;
-      buf[3] = commandToByte(Command.PROBE);
+      // Make the buffer to send.
+      byte[] buf = filledBufferOfSize(4); // header
+      buf[3] = commandToByte(Command.PROBE); // command
 
+      // Try to send the buffer and get a response.
       for (int i = 0; i < maxAttempts; i++) {
         try {
           final DatagramPacket request =
@@ -212,6 +202,15 @@ public class RequestHandler {
       }
       return false;
     }
+  }
+
+  /** Returns a byte array of size `size` with the magic auth token and
+      sequence number filled in. */
+  private byte[] filledBufferOfSize(int size) {
+    byte[] buf = new byte[size];
+    System.arraycopy(magicId, 0, buf, 0, 2);
+    buf[2] = sequenceNo;
+    return buf;
   }
 
   /** Returns `true` if and only if the magic ID and sequence number in

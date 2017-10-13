@@ -140,15 +140,17 @@ public class RequestHandler {
         if (responseIsValid(response) && Command.fromByte(response.getData()[3]) ==
             Command.FETCHRESPONSE) {
           sequenceNo++;
-          byte numServices = response.getData()[3];
-          Service[] services = new service[numServices];
-          for (int i = 0; i < numServices; i++) {
+          byte[] message = response.getData();
+          byte numServices = message[3];
+          Service[] services = new Service[numServices];
+          for (int j = 0; j < numServices; j++) {
             byte[] ip = new byte[4];
-            InetAddress ip = InetAddress.getByAddress(System.arraycopy(buf, (5 + (10*i)), ip, 0, 4));
-            int port = (buf[9 + (10 * i)] << 8) | (buf[10 + (10 * i)]);
-            int data = (buf[11 + (10 * i)] << 24) | (buf[12 + (10 * i)] << 16) |
-                       (buf[13 + (10 * i)] << 8) | (bug[14 + (10 * i)]);
-            services[i] = new Service(ip, port, data)
+            System.arraycopy(message, (5 + (10*i)), ip, 0, 4);
+            InetAddress inetaddr = InetAddress.getByAddress(ip);
+            int port = (message[9 + (10 * j)] << 8) | (message[10 + (10 * j)]);
+            int data = (message[11 + (10 * j)] << 24) | (message[12 + (10 * j)] << 16) |
+                       (message[13 + (10 * j)] << 8) | (message[14 + (10 * j)]);
+            services[j] = new Service(inetaddr, port, data);
           }
           return services;
         } else {
@@ -160,6 +162,7 @@ public class RequestHandler {
         throw new ProtocolException();
       }
     }
+    return null;
   }
 
   /** Unregisters a `Service` with the server.

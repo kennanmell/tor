@@ -20,7 +20,7 @@ public class Service {
   private long lastRegistrationTimeMs;
 
   public Service(InetAddress ip, int iport, int data) {
-    Service(ip, iport, data, null);
+    this(ip, iport, data, null);
   }
 
   /** Create a Service with a specified IP, port, data, and name.

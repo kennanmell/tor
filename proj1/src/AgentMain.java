@@ -123,7 +123,7 @@ public class AgentMain {
           }, Command.REGISTER);
 
           if (result != null) {
-            System.out.println("Registed " + service + ". Lifetime: " + service.getLifetime());
+            System.out.println("Registered " + service + ". Lifetime: " + service.getLifetime());
             // TODO: request that the service be automatically re-registered.
           }
         } else if (command[0].equals("u") && command.length == 2) {

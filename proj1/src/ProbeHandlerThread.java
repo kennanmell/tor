@@ -3,7 +3,6 @@ package src;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 
 /** Thread that listens for probe requests from a server and responds
     acknowledging them. */
@@ -12,10 +11,6 @@ public class ProbeHandlerThread extends Thread {
   private DatagramSocket socket;
   /// The size in bytes of a probe or ack packet (including the header).
   private static final int PACKET_SIZE = 4;
-  /// The `PROBE` `Command` represented as a byte.
-  private static final byte PROBE_TO_BYTE = 6;
-  /// The `ACK` `Command` represented as a byte.
-  private static final byte ACK_TO_BYTE = 7;
   /// A 2-byte id used to authenticate with the server.
   private byte[] magicId;
 
@@ -35,8 +30,6 @@ public class ProbeHandlerThread extends Thread {
 
   @Override
   public void run() {
-    // TODO: finish implementing this. Make sure to implement a callback to AgentMain
-    //       when a service is re-registered so that the main can print the registration.
     while (true) {
       try {
         // Wait for a probe request.
@@ -45,27 +38,24 @@ public class ProbeHandlerThread extends Thread {
         socket.receive(request);
         if (request.getData()[0] == magicId[0] &&
             request.getData()[1] == magicId[1] &&
-            request.getData()[3] == PROBE_TO_BYTE) {
-          // Valid probe (magicId matches and command is 6=probe). Respond with ack.
-          byte[] responseBytes = new byte[PACKET_SIZE];
-          responseBytes[0] = magicId[0];
-          responseBytes[1] = magicId[1];
-          responseBytes[2] = request.getData()[2]; // sequence number
-          responseBytes[3] = ACK_TO_BYTE;
-          DatagramPacket response = new DatagramPacket(responseBytes,
+            request.getData()[3] == Command.PROBE.toByte()) {
+          // Valid probe (magicId and command match). Respond with ack.
+          byte[] buf = new byte[PACKET_SIZE];
+          System.arraycopy(magicId, 0, buf, 0, 2);
+          buf[2] = request.getData()[2]; // sequence number
+          buf[3] = Command.ACK.toByte(); // command
+          DatagramPacket response = new DatagramPacket(buf,
                                                        PACKET_SIZE,
                                                        request.getAddress(),
                                                        request.getPort());
           socket.send(response);
         }
-      } catch (SocketException e) {
-        // Presumably interrupted by the main thread closing the socket when the
-        // program terminates. Since there's no way to confirm that this was
-        // the cause of the exception, if the exception was caused by something
-        // else, it is a fatal error and we still have to terminate.
-        System.exit(0);
       } catch (IOException e) {
-        throw new IllegalStateException();
+        // Presumably a SocketException because we were interrupted by the main
+        // thread closing the socket when the program terminates. However, if
+        // it was another error, we still need to shut down because the state
+        // is irrecoverable.
+        System.exit(0);
       }
     }
   }

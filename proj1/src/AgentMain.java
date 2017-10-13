@@ -4,7 +4,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.concurrent.Callable;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -18,6 +17,11 @@ public class AgentMain {
   public static final int REQUEST_TIMEOUT_MS = 5000;
   /// The maximum number of times to send a request to the server before giving up.
   public static final int MAX_REQUEST_TRIES = 3;
+
+  private static DatagramSocket readSocket = null;
+  private static DatagramSocket writeSocket = null;
+  private static RequestHandler requestHandler;
+  private static InetAddress localhostIp;
 
   public static void main(String[] args) {
     // Process command line args.
@@ -42,7 +46,6 @@ public class AgentMain {
       return;
     }
 
-    final InetAddress localhostIp;
     try {
       localhostIp = InetAddress.getLocalHost();
     } catch (UnknownHostException e) {
@@ -51,8 +54,6 @@ public class AgentMain {
     }
 
     // Bind to adjacent ports.
-    DatagramSocket writeSocket = null;
-    DatagramSocket readSocket = null;
     int startPort = 1500;
     while (writeSocket == null) {
       try {
@@ -78,11 +79,10 @@ public class AgentMain {
     // Use only one attempt for each request because we print an error message
     // each time a request fails. A custom retry mechanism is implemented by
     // AgentMain.requestWithRetries.
-    RequestHandler requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
+    requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
     System.out.println("Running the tor61 registration client. Version 1.");
-    System.out.println(String.format(
-        "Connected to server at %s:%d.", serverAddress.toString(), serverPort));
+    System.out.println("Connected to server at " + serverAddress + ":" + serverPort);
     System.out.println("Ready. Type \"h\" for command list.");
 
     // Run input loop until user terminates.
@@ -97,104 +97,24 @@ public class AgentMain {
           continue;
         }
 
-        if (command[0].equals("r") && command.length == 4) {
-          // Register portnum data serviceName
-          // Register this ip + portnum with the specified data and service name.
-          int iport;
-          int data;
-          String serviceName = command[3];
+        // Custom retry mechanism with error messages to stdout.
+        Command type = null;
+        for (int i = 0; i < MAX_REQUEST_TRIES; i++) {
           try {
-            iport = Integer.parseInt(command[1]);
-          } catch (NumberFormatException e) {
-            System.out.println("Invalid port for register command.");
-            continue;
-          }
-          try {
-            data = (int) Long.parseLong(command[2]); // parse unsigned int
-          } catch (NumberFormatException e) {
-            System.out.println("Invalid data for register command.");
-            continue;
-          }
-          Service service = new Service(localhostIp, iport, data, serviceName);
-          Object result = requestWithRetries(new Callable<Object>() {
-            public Object call() throws ProtocolException {
-              return requestHandler.registerService(service);
+            type = processStringCommand(command);
+            if (type == null) {
+              break;
+            } else {
+              System.out.println(type + " command timed out. Retrying.");
             }
-          }, Command.REGISTER);
-
-          if (result != null) {
-            System.out.println("Registed " + service + ". Lifetime: " + service.getLifetime());
-            // TODO: request that the service be automatically re-registered.
+          } catch (ProtocolException e) {
+            System.out.println("Command failed.");
+            break;
           }
-        } else if (command[0].equals("u") && command.length == 2) {
-          // Unregister portnum
-          // Unregister this ip + portnum.
-          int iport;
-          try {
-            iport = Integer.parseInt(command[1]);
-          } catch (NumberFormatException e) {
-            System.out.println("Invalid port for unregister command.");
-            continue;
-          }
+        }
 
-          // Last two arguments of the service are not used.
-          Service service = new Service(localhostIp, iport, 0, "");
-
-          Object result = requestWithRetries(new Callable<Object>() {
-            public Object call() throws ProtocolException {
-              return requestHandler.unregisterService(service);
-            }
-          }, Command.UNREGISTER);
-
-          if (result != null) {
-            System.out.println("Unregisted service on port " + service.iport + ".");
-          }
-        } else if (command[0].equals("f") && command.length == 2) {
-          // Fetch <name prefix>
-          // Fetch name prefix info from registration service, print returned info.
-          final String prefix = command[1];
-          Object result = requestWithRetries(new Callable<Object>() {
-            public Object call() throws ProtocolException {
-              return requestHandler.fetchRegistrationsBeginningWithString(prefix);
-            }
-          }, Command.FETCH);
-
-          if (result != null) {
-            Service[] services = (Service[]) result;
-            System.out.println("Received " + services.length + " services starting with " + prefix);
-            for (int i = 0; i < services.length; i++) {
-              System.out.println(i + ": " + services[i]);
-            }
-          }
-        } else if (command[0].equals("p") && command.length == 1) {
-          // Probe.
-          // See if registration service is alive.
-          Object result = requestWithRetries(new Callable<Object>() {
-            public Object call() throws ProtocolException {
-              return requestHandler.probeServer();
-            }
-          }, Command.PROBE);
-
-          if (result != null) {
-            System.out.println("Probe succeeded.");
-          }
-        } else if (command[0].equals("h") && command.length == 1) {
-          System.out.println("Commands:");
-          System.out.println("REGISTER: r <portnum> <data> <serviceName>");
-          System.out.println("UNREGISTER: u <portnum>");
-          System.out.println("FETCH: f <name prefix>");
-          System.out.println("PROBE: p");
-          System.out.println("HELP: h");
-          System.out.println("QUIT: q");
-        } else if (command[0].equals("q") && command.length == 1) {
-          // Quit.
-          writeSocket.close();
-          readSocket.close();
-          System.exit(0);
-        } else {
-          // Invalid.
-          System.out.println("Invalid command. Type \"h\" for command list.");
-          continue;
+        if (type != null) {
+          System.out.println(type + " command failed.");
         }
       } catch (NoSuchElementException e) {
         System.out.println("Unexpected character in input. Terminating.");
@@ -205,37 +125,100 @@ public class AgentMain {
     }
   }
 
-  /** Performs a `Callable` function associated with a `Command`. If the function
-      returns `null` or `false`, it retries up to `MAX_REQUEST_TRIES` times.
-      Does not retry if a `ProtocolException` is thrown. Prints a message to
-      stdout whenever a failure or timeout occurs.
-      @param requestHandlerFunc The function to execute up to `MAX_REQUEST_TRIES` times.
-      @param type The `Command` type associated with `requestHandlerFunc`.
-      @return The Object returned by the `requestHandlerFunc`, or `null` if
-              the function never completed successfully.
-      @throws IllegalStateException If an unexpected exception is thrown. */
-  private static Object requestWithRetries(Callable<Object> requestHandlerFunc, Command type) {
-    for (int i = 0; i < MAX_REQUEST_TRIES; i++) {
+  /** Attempts to process user input as a command. Returns null if the command
+      succeeds, but returns the type of the command if it times out (to make error
+      messages easier to print). Throws a ProtocolException if the command fails
+      for a reason besides a timeout. */
+  private static Command processStringCommand(String[] command) throws ProtocolException {
+    if (command[0].equals("r") && command.length == 4) {
+      // Register portnum data serviceName
+      // Register this ip + portnum with the specified data and service name.
+      int iport;
+      int data;
+      String serviceName = command[3];
       try {
-        Object result = requestHandlerFunc.call();
-        if (result == null ||
-            ((result instanceof Boolean) && ((Boolean) result == false))) {
-          System.out.println(String.format(
-              "Timed out waiting for reply to %s message.", type.toString()));
-        } else {
-          return result;
-        }
-      } catch (ProtocolException e) {
-        System.out.println(String.format(
-            "Received invalid response to %s message.", type.toString()));
-        return null;
-      } catch (Exception e) {
-        throw new IllegalStateException();
+        iport = Integer.parseInt(command[1]);
+      } catch (NumberFormatException e) {
+        System.out.println("Invalid port for REGISTER command.");
+        return Command.REGISTER;
       }
+      try {
+        data = (int) Long.parseLong(command[2]); // parse unsigned int
+      } catch (NumberFormatException e) {
+        System.out.println("Invalid data for REGISTER command.");
+        return Command.REGISTER;
+      }
+
+      Service service = new Service(localhostIp, iport, data, serviceName);
+
+      if (requestHandler.registerService(service)) {
+        System.out.println("Registed " + service + ". Lifetime: " + service.getLifetime());
+        // TODO: request that the service be automatically re-registered.
+        return null;
+      } else {
+        return Command.REGISTER;
+      }
+    } else if (command[0].equals("u") && command.length == 2) {
+      // Unregister portnum
+      // Unregister this ip + portnum.
+      int iport;
+      try {
+        iport = Integer.parseInt(command[1]);
+      } catch (NumberFormatException e) {
+        System.out.println("Invalid port for UNREGISTER command.");
+        return Command.UNREGISTER;
+      }
+
+      // Last two arguments of the service are not used.
+      Service service = new Service(localhostIp, iport, 0, "");
+
+      if (requestHandler.unregisterService(service)) {
+        System.out.println("Unregisted service on port " + service.iport + ".");
+        return null;
+      } else {
+        return Command.UNREGISTER;
+      }
+    } else if (command[0].equals("f") && command.length == 2) {
+      // Fetch <name prefix>
+      // Fetch name prefix info from registration service, print returned info.
+      final String prefix = command[1];
+      Service[] services = requestHandler.fetchRegistrationsBeginningWithString(prefix);
+      if (services != null) {
+        System.out.println("Received " + services.length + " services starting with " + prefix);
+        for (int i = 0; i < services.length; i++) {
+          System.out.println(i + ": " + services[i]);
+        }
+        return null;
+      } else {
+        return Command.FETCH;
+      }
+    } else if (command[0].equals("p") && command.length == 1) {
+      // Probe.
+      // See if registration service is alive.
+      if (requestHandler.probeServer()) {
+        System.out.println("Probe succeeded.");
+        return null;
+      }
+      return Command.PROBE;
+    } else if (command[0].equals("h") && command.length == 1) {
+      System.out.println("Commands:");
+      System.out.println("REGISTER: r <portnum> <data> <serviceName>");
+      System.out.println("UNREGISTER: u <portnum>");
+      System.out.println("FETCH: f <name prefix>");
+      System.out.println("PROBE: p");
+      System.out.println("HELP: h");
+      System.out.println("QUIT: q");
+      return null;
+    } else if (command[0].equals("q") && command.length == 1) {
+      // Quit.
+      writeSocket.close();
+      readSocket.close();
+      System.exit(0);
+      return null;
+    } else {
+      // Invalid.
+      System.out.println("Invalid command. Type \"h\" for command list.");
+      return null;
     }
-    System.out.println(String.format(
-        "Sent %d %s messages but got no reply.", MAX_REQUEST_TRIES, type.toString()));
-    System.out.println(String.format("%s command failed.", type.toString()));
-    return null;
   }
 }

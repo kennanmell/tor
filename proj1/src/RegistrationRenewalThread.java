@@ -10,6 +10,8 @@ public class RegistrationRenewalThread extends Thread {
   @Override
   public void run() {
     try {
+      // TODO: finish implementing this. Make sure to implement a callback to AgentMain
+      //       when a service is re-registered so that the main can print the registration.
       Collections.sort(servicesToRegister, new Comparator<Service>() {
         @Override
         public int compare(Service o1, Service o2) {

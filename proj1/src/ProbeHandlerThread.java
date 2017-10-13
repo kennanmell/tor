@@ -3,6 +3,7 @@ package src;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 
 /** Thread that listens for probe requests from a server and responds
     acknowledging them. */
@@ -50,11 +51,11 @@ public class ProbeHandlerThread extends Thread {
                                                        request.getPort());
           socket.send(response);
         }
+      } catch (SocketException e) {
+        // Main thread is closing so we can stop.
+        return;
       } catch (IOException e) {
-        // Presumably a SocketException because we were interrupted by the main
-        // thread closing the socket when the program terminates. However, if
-        // it was another error, we still need to shut down because the state
-        // is irrecoverable.
+        System.err.println("fatal error");
         System.exit(0);
       }
     }

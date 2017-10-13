@@ -137,7 +137,7 @@ public class RequestHandler {
         final DatagramPacket response =
             new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
         socket.receive(response);
-        if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == 
+        if (responseIsValid(response) && Command.fromByte(response.getData()[3]) ==
             Command.FETCHRESPONSE) {
           sequenceNo++;
           byte numServices = response.getData()[3];
@@ -146,7 +146,7 @@ public class RequestHandler {
             byte[] ip = new byte[4];
             InetAddress ip = InetAddress.getByAddress(System.arraycopy(buf, (5 + (10*i)), ip, 0, 4));
             int port = (buf[9 + (10 * i)] << 8) | (buf[10 + (10 * i)]);
-            int data = (buf[11 + (10 * i)] << 24) | (buf[12 + (10 * i)] << 16) | 
+            int data = (buf[11 + (10 * i)] << 24) | (buf[12 + (10 * i)] << 16) |
                        (buf[13 + (10 * i)] << 8) | (bug[14 + (10 * i)]);
             services[i] = new Service(ip, port, data)
           }

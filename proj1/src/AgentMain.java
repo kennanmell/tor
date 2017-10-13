@@ -49,7 +49,7 @@ public class AgentMain {
     try {
       localhostIp = InetAddress.getLocalHost();
     } catch (UnknownHostException e) {
-      System.out.println("fatal error: unable to get localhost ip");
+      System.out.println("fatal error");
       return;
     }
 
@@ -82,7 +82,7 @@ public class AgentMain {
     requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
     System.out.println("Running the tor61 registration client. Version 1.");
-    System.out.println("Connected to server at " + serverAddress + ":" + serverPort);
+    System.out.println("Using server at " + serverAddress + ":" + serverPort);
     System.out.println("Ready. Type \"h\" for command list.");
 
     // Run input loop until user terminates.
@@ -152,7 +152,7 @@ public class AgentMain {
       Service service = new Service(localhostIp, iport, data, serviceName);
 
       if (requestHandler.registerService(service)) {
-        System.out.println("Registered " + service + ". Lifetime: " + service.getLifetime());
+        System.out.println("Registered " + service ".");
         // TODO: request that the service be automatically re-registered.
         return null;
       } else {
@@ -196,7 +196,7 @@ public class AgentMain {
       // Probe.
       // See if registration service is alive.
       if (requestHandler.probeServer()) {
-        System.out.println("Probe succeeded.");
+        System.out.println("Probed server.");
         return null;
       }
       return Command.PROBE;

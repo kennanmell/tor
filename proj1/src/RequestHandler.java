@@ -108,7 +108,6 @@ public class RequestHandler {
             service.setLifetime(
                 (response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF));
             service.setLastRegistrationTimeMs(System.currentTimeMillis());
-            // TODO: add automatic re-registration before expiration
             return true;
           } else {
             throw new ProtocolException();
@@ -121,6 +120,18 @@ public class RequestHandler {
       }
       return false;
     }
+  }
+
+  /** Fetches some subset of services whose names start with 'start'. If 'start'
+      is the empty String, any subset of services may be returned.
+      @param start The start of each Service name to return.
+      @return A list of Services whose names start with 'start', or `null` if the
+              server did not respond.
+      @throws ProtocolException If the server responds with an invalid packet
+              or there is another IO error. */
+  public Service[] fetchRegistrationsBeginningWithString(String start) throws ProtocolException {
+    // TODO: implement this
+    throw new UnsupportedOperationException();
   }
 
   /** Unregisters a `Service` with the server.

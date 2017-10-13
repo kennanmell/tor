@@ -72,6 +72,8 @@ public class AgentMain {
     final ProbeHandlerThread probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
     probeHandler.start();
 
+    // TODO: set up automatic service registration renewal thread.
+
     // Prepare for user commands.
     RequestHandler.setServer(serverAddress, serverPort);
     // Use only one attempt for each request because we print an error message
@@ -123,6 +125,7 @@ public class AgentMain {
 
           if (result != null) {
             System.out.println("Registed " + service + ". Lifetime: " + service.getLifetime());
+            // TODO: request that the service be automatically re-registered.
           }
         } else if (command[0].equals("u") && command.length == 2) {
           // Unregister portnum
@@ -150,6 +153,20 @@ public class AgentMain {
         } else if (command[0].equals("f") && command.length == 2) {
           // Fetch <name prefix>
           // Fetch name prefix info from registration service, print returned info.
+          final String prefix = command[1];
+          Object result = requestWithRetries(new Callable<Object>() {
+            public Object call() throws ProtocolException {
+              return requestHandler.fetchRegistrationsBeginningWithString(prefix);
+            }
+          }, Command.FETCH);
+
+          if (result != null) {
+            Service[] services = (Service[]) result;
+            System.out.println("Received " + services.length + " services starting with " + prefix);
+            for (int i = 0; i < services.length; i++) {
+              System.out.println(i + ": " + services[i]);
+            }
+          }
         } else if (command[0].equals("p") && command.length == 1) {
           // Probe.
           // See if registration service is alive.

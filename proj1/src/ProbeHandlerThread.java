@@ -35,6 +35,8 @@ public class ProbeHandlerThread extends Thread {
 
   @Override
   public void run() {
+    // TODO: finish implementing this. Make sure to implement a callback to AgentMain
+    //       when a service is re-registered so that the main can print the registration.
     while (true) {
       try {
         // Wait for a probe request.

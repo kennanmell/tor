@@ -94,7 +94,9 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[6], 6);
           socket.receive(response);
-          if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == Command.REGISTERED) {
+          if (response.getLength() == 6 &&
+              responseIsValid(response) &&
+              Command.fromByte(response.getData()[3]) == Command.REGISTERED) {
             sequenceNo++;
             service.setLifetime(
                 (response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF));
@@ -111,58 +113,6 @@ public class RequestHandler {
       }
       return false;
     }
-  }
-
-  /** Fetches some subset of services whose names start with 'start'. If 'start'
-      is the empty String, any subset of services may be returned.
-      @param start The start of each Service name to return.
-      @return A list of Services whose names start with 'start', or `null` if the
-              server did not respond.
-      @throws ProtocolException If the server responds with an invalid packet
-              or there is another IO error. */
-  public Service[] fetchRegistrationsBeginningWithString(String start) throws ProtocolException {
-    // TODO: implement this
-    int nameLength = start.length();
-    byte[] buf = filledBufferOfSize(5 + nameLength);
-    buf[3] = Command.FETCH.toByte();
-    buf[4] = (byte) nameLength;
-    System.arraycopy(start, 0, buf, 6, nameLength);
-    for (int i = 0; i < maxAttempts; i++) {
-      try {
-        final DatagramPacket request =
-            new DatagramPacket(buf, buf.length, serverAddress, serverPort);
-        socket.send(request);
-        // Block on ack response.
-        // try once with 512, then increase to max
-        final DatagramPacket response =
-            new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
-        socket.receive(response);
-        if (responseIsValid(response) && Command.fromByte(response.getData()[3]) ==
-            Command.FETCHRESPONSE) {
-          sequenceNo++;
-          byte[] message = response.getData();
-          byte numServices = message[3];
-          Service[] services = new Service[numServices];
-          for (int j = 0; j < numServices; j++) {
-            byte[] ip = new byte[4];
-            System.arraycopy(message, (5 + (10*i)), ip, 0, 4);
-            InetAddress inetaddr = InetAddress.getByAddress(ip);
-            int port = (message[9 + (10 * j)] << 8) | (message[10 + (10 * j)]);
-            int data = (message[11 + (10 * j)] << 24) | (message[12 + (10 * j)] << 16) |
-                       (message[13 + (10 * j)] << 8) | (message[14 + (10 * j)]);
-            services[j] = new Service(inetaddr, port, data);
-          }
-          return services;
-        } else {
-          throw new ProtocolException();
-        }
-      } catch (SocketTimeoutException e) {
-        continue;
-      } catch (IOException e) {
-        throw new ProtocolException();
-      }
-    }
-    return null;
   }
 
   /** Unregisters a `Service` with the server.
@@ -190,7 +140,9 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[4], 4);
           socket.receive(response);
-          if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == Command.ACK) {
+          if (response.getLength() == 4 &&
+              responseIsValid(response) &&
+              Command.fromByte(response.getData()[3]) == Command.ACK) {
             sequenceNo++;
             return true;
           } else {
@@ -203,6 +155,70 @@ public class RequestHandler {
         }
       }
       return false;
+    }
+  }
+
+  /** Fetches some subset of services whose names start with 'start'. If 'start'
+      is the empty String, any subset of services may be returned.
+      @param start The start of each Service name to return.
+      @return A list of Services whose names start with 'start', or `null` if the
+              server did not respond.
+      @throws ProtocolException If the server responds with an invalid packet
+              or there is another IO error. */
+  public Service[] fetchServicesBeginningWith(String start) throws ProtocolException {
+    synchronized (lock) {
+      // Make the buffer to send.
+      byte[] buf = filledBufferOfSize(5 + start.length());
+      buf[3] = Command.FETCH.toByte(); // command
+      buf[4] = (byte) start.length(); // service name length
+      System.arraycopy(start.getBytes(), 0, buf, 5, start.length()); // service name
+
+      // Try to send the buffer and get a response.
+      for (int i = 0; i < maxAttempts; i++) {
+        try {
+          final DatagramPacket request =
+              new DatagramPacket(buf, buf.length, serverAddress, serverPort);
+          socket.send(request);
+
+          // Block on fetch response.
+          DatagramPacket response =
+              new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
+          socket.receive(response);
+          if (response.getLength() < MAX_UDP_PACKET_SIZE &&
+              response.getLength() >= 5 + 10 * response.getData()[4] &&
+              responseIsValid(response) &&
+              Command.fromByte(response.getData()[3]) == Command.FETCHRESPONSE) {
+            sequenceNo++;
+
+            // Build and return the resulting Service array.
+            final byte[] responseData = response.getData();
+            Service[] result = new Service[responseData[4]];
+            for (int j = 0; j < result.length; j++) {
+              final byte[] ipBytes = new byte[4];
+              System.arraycopy(responseData, 5 + 10 * j, ipBytes, 0, 4);
+              final InetAddress ip = InetAddress.getByAddress(ipBytes);
+
+              final byte[] iportBytes = new byte[2];
+              System.arraycopy(responseData, 9 + 10 * j, iportBytes, 0, 2);
+              final int iport = (int) ByteBuffer.wrap(iportBytes).getShort();
+
+              final byte[] dataBytes = new byte[4];
+              System.arraycopy(responseData, 11 + 10 * j, dataBytes, 0, 4);
+              final int data = ByteBuffer.wrap(dataBytes).getInt();
+
+              result[j] = new Service(ip, iport, data);
+            }
+            return result;
+          } else {
+            throw new ProtocolException();
+          }
+        } catch (SocketTimeoutException e) {
+          continue;
+        } catch (IOException e) {
+          throw new ProtocolException();
+        }
+      }
+      return null;
     }
   }
 
@@ -228,7 +244,9 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[4], 4);
           socket.receive(response);
-          if (responseIsValid(response) && Command.fromByte(response.getData()[3]) == Command.ACK) {
+          if (response.getLength() == 4 &&
+              responseIsValid(response) &&
+              Command.fromByte(response.getData()[3]) == Command.ACK) {
             sequenceNo++;
             return true;
           } else {

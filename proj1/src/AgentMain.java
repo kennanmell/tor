@@ -82,7 +82,7 @@ public class AgentMain {
     requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
     System.out.println("Running the tor61 registration client. Version 1.");
-    System.out.println("Using server at " + serverAddress + ":" + serverPort);
+    System.out.println("Using server at " + serverAddress.getHostAddress() + ":" + serverPort);
     System.out.println("Ready. Type \"h\" for command list.");
 
     // Run input loop until user terminates.
@@ -178,15 +178,34 @@ public class AgentMain {
       } else {
         return Command.UNREGISTER;
       }
-    } else if (command[0].equals("f") && command.length == 2) {
+    } else if (command[0].equals("f") && (command.length == 1 || command.length == 2)) {
       // Fetch <name prefix>
       // Fetch name prefix info from registration service, print returned info.
-      final String prefix = command[1];
-      Service[] services = requestHandler.fetchRegistrationsBeginningWithString(prefix);
+      final String prefix = command.length == 1 ? "" : command[1];
+      Service[] services = requestHandler.fetchServicesBeginningWith(prefix);
       if (services != null) {
-        System.out.println("Received " + services.length + " services starting with " + prefix);
+        if (services.length == 0) {
+          if (prefix.length() == 0) {
+            System.out.println("Found no services.");
+          } else {
+            System.out.println("Found no services starting with " + prefix + ".");
+          }
+          return null;
+        } else if (services.length == 1) {
+          if (prefix.length() == 0) {
+            System.out.println("Found 1 service:");
+          } else {
+            System.out.println("Found 1 service starting with " + prefix + ":");
+          }
+        } else {
+          if (prefix.length() == 0) {
+            System.out.println("Found " + services.length + " services:");
+          } else {
+            System.out.println("Found " + services.length + " services starting with " + prefix + ":");
+          }
+        }
         for (int i = 0; i < services.length; i++) {
-          System.out.println(i + ": " + services[i]);
+          System.out.println("    " + services[i]);
         }
         return null;
       } else {

@@ -23,13 +23,8 @@ public class Service {
     this(ip, iport, data, null);
   }
 
-  /** Create a Service with a specified IP, port, data, and name.
-      @throws IllegalArgumentException if InetAddress is null, port < 0,
-      or name is null. */
+  /** Create a Service with a specified IP, port, data, and name. */
   public Service(InetAddress ip, int iport, int data, String name) {
-    if (ip == null || iport < 0 || name == null) {
-      throw new IllegalArgumentException();
-    }
     this.ip = ip;
     this.iport = iport;
     this.data = data;
@@ -63,9 +58,9 @@ public class Service {
   @Override
   public String toString() {
     if (name == null) {
-      return String.format("service data %d at %d:%d", data, ip, iport);
+      return ip.getHostAddress() + ":" + iport + "(data: " + data + ")";
     } else {
-      return String.format("service %s at %s:%d", name, ip, iport);
+      return name + " at " + ip.getHostAddress() + ":" + iport;
     }
   }
 }

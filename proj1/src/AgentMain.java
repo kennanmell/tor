@@ -55,18 +55,25 @@ public class AgentMain {
 
     // Bind to adjacent ports.
     int startPort = 1500;
-    while (writeSocket == null) {
+    while (writeSocket == null || readSocket == null) {
       try {
-        writeSocket = new DatagramSocket(startPort);
+        writeSocket = new DatagramSocket(1500);
+        startPort++;
+        readSocket = new DatagramSocket(1501);
         writeSocket.setSoTimeout(REQUEST_TIMEOUT_MS);
-        readSocket = new DatagramSocket(++startPort);
+        System.out.println(readSocket.getPort());
+        System.out.println(readSocket.getInetAddress());
       } catch (SocketException e) {
+        System.out.println("exception");
         startPort++;
         writeSocket = null;
         readSocket = null;
         continue;
       }
     }
+
+    System.out.println(readSocket);
+    System.out.println(readSocket.getPort());
 
     // Handle probes from server.
     final ProbeHandlerThread probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
@@ -108,7 +115,7 @@ public class AgentMain {
               System.out.println(type + " command timed out. Retrying.");
             }
           } catch (ProtocolException e) {
-            System.out.println("Command failed.");
+            System.out.println("command failed.");
             break;
           }
         }

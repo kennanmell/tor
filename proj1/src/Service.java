@@ -58,7 +58,7 @@ public class Service {
   @Override
   public String toString() {
     if (name == null) {
-      return ip.getHostAddress() + ":" + iport + "(data: " + data + ")";
+      return ip.getHostAddress() + ":" + iport + " (data: " + data + ")";
     } else {
       return name + " at " + ip.getHostAddress() + ":" + iport;
     }

@@ -166,49 +166,51 @@ public class RequestHandler {
       @throws ProtocolException If the server responds with an invalid packet
               or there is another IO error. */
   public Service[] fetchServicesBeginningWith(String start) throws ProtocolException {
-    int nameLength = start.length();
-    byte[] buf = filledBufferOfSize(5 + nameLength);
-    buf[3] = Command.FETCH.toByte();
-    buf[4] = (byte) nameLength;
-    System.arraycopy(start.getBytes(), 0, buf, 5, nameLength);
-    for (int i = 0; i < maxAttempts; i++) {
-      try {
-        final DatagramPacket request =
-            new DatagramPacket(buf, buf.length, serverAddress, serverPort);
-        socket.send(request);
-        final DatagramPacket response =
-            new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
-        socket.receive(response);
-        if (responseIsValid(response) && (response.getLength() == (5 + (10 * response.getData()[4])))
-            && response.getLength() < MAX_UDP_PACKET_SIZE 
-            && Command.fromByte(response.getData()[3]) == Command.FETCHRESPONSE) {
-          sequenceNo++;
-          byte[] message = response.getData();
-          byte numServices = message[4];
-          Service[] services = new Service[numServices];
-          for (int j = 0; j < numServices; j++) {
-            byte[] ip = new byte[4];
-            System.arraycopy(message, (5 + (10 * j)), ip, 0, 4);
-            InetAddress inetaddr = InetAddress.getByAddress(ip);
-            final byte[] iportBytes = new byte[2];
-            System.arraycopy(message, 9 + 10 * j, iportBytes, 0, 2);
-            final int port = (int) ByteBuffer.wrap(iportBytes).getShort();
-            final byte[] dataBytes = new byte[4];
-            System.arraycopy(message, 11 + 10 * j, dataBytes, 0, 4);
-            final int data = ByteBuffer.wrap(dataBytes).getInt();
-            services[j] = new Service(inetaddr, port, data);
+    synchronized (lock) {
+      int nameLength = start.length();
+      byte[] buf = filledBufferOfSize(5 + nameLength);
+      buf[3] = Command.FETCH.toByte();
+      buf[4] = (byte) nameLength;
+      System.arraycopy(start.getBytes(), 0, buf, 5, nameLength);
+      for (int i = 0; i < maxAttempts; i++) {
+        try {
+          final DatagramPacket request =
+              new DatagramPacket(buf, buf.length, serverAddress, serverPort);
+          socket.send(request);
+          final DatagramPacket response =
+              new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
+          socket.receive(response);
+          if (responseIsValid(response) && (response.getLength() == (5 + (10 * response.getData()[4])))
+              && response.getLength() < MAX_UDP_PACKET_SIZE 
+              && Command.fromByte(response.getData()[3]) == Command.FETCHRESPONSE) {
+            sequenceNo++;
+            byte[] message = response.getData();
+            byte numServices = message[4];
+            Service[] services = new Service[numServices];
+            for (int j = 0; j < numServices; j++) {
+              byte[] ip = new byte[4];
+              System.arraycopy(message, (5 + (10 * j)), ip, 0, 4);
+              InetAddress inetaddr = InetAddress.getByAddress(ip);
+              final byte[] iportBytes = new byte[2];
+              System.arraycopy(message, 9 + 10 * j, iportBytes, 0, 2);
+              final int port = (int) ByteBuffer.wrap(iportBytes).getShort();
+              final byte[] dataBytes = new byte[4];
+              System.arraycopy(message, 11 + 10 * j, dataBytes, 0, 4);
+              final int data = ByteBuffer.wrap(dataBytes).getInt();
+              services[j] = new Service(inetaddr, port, data);
+            }
+            return services;
+          } else {
+            throw new ProtocolException();
           }
-          return services;
-        } else {
+        } catch (SocketTimeoutException e) {
+          continue;
+        } catch (IOException e) {
           throw new ProtocolException();
         }
-      } catch (SocketTimeoutException e) {
-        continue;
-      } catch (IOException e) {
-        throw new ProtocolException();
       }
+      return null;
     }
-    return null;
   }
 
   /** Probes the server.

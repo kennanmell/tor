@@ -22,6 +22,8 @@ public class AgentMain {
   private static DatagramSocket writeSocket = null;
   private static RequestHandler requestHandler;
   private static InetAddress localhostIp;
+  private static RegistrationRenewalThread registrationRenewer;
+  private static ProbeHandlerThread probeHandler;
 
   public static void main(String[] args) {
     // Process command line args.
@@ -76,10 +78,12 @@ public class AgentMain {
     System.out.println(readSocket.getPort());
 
     // Handle probes from server.
-    final ProbeHandlerThread probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
+    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
     probeHandler.start();
 
-    // TODO: set up automatic service registration renewal thread.
+    // set up automatic service registration renewal thread.
+    registrationRenewer = new RegistrationRenewalThread(writeSocket, MAGIC_ID);
+    registrationRenewalThread.start();
 
     // Prepare for user commands.
     RequestHandler.setServer(serverAddress, serverPort);
@@ -161,6 +165,8 @@ public class AgentMain {
       if (requestHandler.registerService(service)) {
         System.out.println("Registered " + service + ".");
         // TODO: request that the service be automatically re-registered.
+        registrationRenewer.addService(service);
+        registrationRenewer.notify();
         return null;
       } else {
         return Command.REGISTER;

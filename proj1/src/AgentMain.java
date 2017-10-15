@@ -164,11 +164,8 @@ public class AgentMain {
 
       if (requestHandler.registerService(service)) {
         System.out.println("Registered " + service + ".");
-        // TODO: request that the service be automatically re-registered.
-        synchronized(registrationRenewer) {
-          registrationRenewer.addService(service);
-        }
-        registrationRenewer.notify();
+        registrationRenewer.addService(service);
+        //registrationRenewer.notify();
         return null;
       } else {
         return Command.REGISTER;

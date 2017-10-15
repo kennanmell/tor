@@ -13,7 +13,7 @@ public class RegistrationRenewalThread extends Thread {
   private byte[] magicId;
   private DatagramSocket socket;
   private int magicID;
-  
+
   public RegistrationRenewalThread(DatagramSocket socket, int magicID) {
     if (socket == null) {
       throw new IllegalArgumentException();
@@ -41,40 +41,46 @@ public class RegistrationRenewalThread extends Thread {
   }
 
   public void addService(Service service) {
-    servicesToRegister.add(service);
+    synchronized (servicesToRegister) {
+      servicesToRegister.add(service);
+    }
   }
 
   @Override
   public void run() {
-    try {
-      // TODO: remove duplicate services
-      // TODO: check that waits and notifies are not buggy
-      // TODO: callback to AgentMain when service is re-registered so main prints pregistration
-      RequestHandler requestHandler = new RequestHandler(magicID, socket, 3);
-      int waitTime = 0;
-      boolean succeeded = false;
-      while(true) {
-        while (this.servicesToRegister.size() == 0) {
-          this.wait();
-        }
-        Service priorityService; 
-        synchronized(this) {
-          priorityService = this.servicesToRegister.pollFirst();
-          if (priorityService != null) {
-            try {
-              succeeded = requestHandler.registerService(priorityService);
-            } catch (ProtocolException e) {
-              System.out.println("Registration renewal failed.");
-            }
-            waitTime = Math.max(this.servicesToRegister.first().getLifetime() - BUFFER_TIME, 0);
+    synchronized (this) {
+      try {
+        // TODO: remove duplicate services
+        // TODO: check that waits and notifies are not buggy
+        // TODO: callback to AgentMain when service is re-registered so main prints pregistration
+        RequestHandler requestHandler = new RequestHandler(magicID, socket, 3);
+        int waitTime = 0;
+        boolean succeeded = false;
+        while(true) {
+          if (this.servicesToRegister.size() == 0) {
+            this.wait();
           }
+          Service priorityService;
+          synchronized(servicesToRegister) {
+            priorityService = this.servicesToRegister.pollFirst();
+            if (priorityService != null) {
+              try {
+                succeeded = requestHandler.registerService(priorityService);
+                servicesToRegister.add(priorityService);
+                System.out.println("Automatically renewed registration for " + priorityService);
+              } catch (ProtocolException e) {
+                System.out.println("Registration renewal failed.");
+              }
+              waitTime = Math.max(this.servicesToRegister.first().getLifetime() - BUFFER_TIME, 0);
+            }
+          }
+          // pause thread until we need to handle nextmost request or if
+          // client added another element.
+          this.wait(waitTime);
         }
-        // pause thread until we need to handle nextmost request or if 
-        // client added another element.
-        this.wait(waitTime);
+      } catch (InterruptedException e) {
+        throw new IllegalStateException();
       }
-    } catch (InterruptedException e) {
-      throw new IllegalStateException();
     }
   }
 }

@@ -34,7 +34,7 @@ public class RegistrationRenewalThread extends Thread {
           return 0;
         } else {
           // o1TimeLeft < o2TimeLeft
-          return -1;
+          return -1;se
         }
       }
     });
@@ -47,23 +47,27 @@ public class RegistrationRenewalThread extends Thread {
   @Override
   public void run() {
     try {
-      // TODO: finish implementing this. Make sure to implement a callback to AgentMain
-      //       when a service is re-registered so that the main can print the registration.
-      // may need lock, main could add to set when set is being read or modified by this thread
-      // add sleep to thread while size of set is empty
-      // check case where set is emmpty, and wait times
+      // TODO: remove duplicate services
+      // TODO: check that waits and notifies are not buggy
+      // TODO: callback to AgentMain when service is re-registered so main prints pregistration
       RequestHandler requestHandler = new RequestHandler(MAGIC_ID, socket, 3);
       int waitTime = 0;
       boolean succeeded = false;
       while(true) {
-        Service priorityService = servicesToRegister.pollFirst();
-        if (priorityService != null) {
-          succeeded = requestHandler.registerService(priorityService);
-          waitTime = Math.max(servicesToRegister.first().getLifetime() - BUFFER_TIME, 0);
+        while (servicesToRegister.size() == 0) {
+          this.wait();
+        }
+        Service priorityService; 
+        synchronized(this) {
+          priorityService = servicesToRegister.pollFirst();
+          if (priorityService != null) {
+            succeeded = requestHandler.registerService(priorityService);
+            waitTime = Math.max(servicesToRegister.first().getLifetime() - BUFFER_TIME, 0);
+          }
         }
         // pause thread until we need to handle nextmost request or if 
         // client added another element.
-        wait(waitTime);
+        this.wait(waitTime);
       }
     } catch (InterruptedException e) {
       throw new IllegalStateException();

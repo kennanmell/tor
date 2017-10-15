@@ -83,7 +83,7 @@ public class AgentMain {
 
     // set up automatic service registration renewal thread.
     registrationRenewer = new RegistrationRenewalThread(writeSocket, MAGIC_ID);
-    registrationRenewalThread.start();
+    registrationRenewer.start();
 
     // Prepare for user commands.
     RequestHandler.setServer(serverAddress, serverPort);
@@ -165,7 +165,9 @@ public class AgentMain {
       if (requestHandler.registerService(service)) {
         System.out.println("Registered " + service + ".");
         // TODO: request that the service be automatically re-registered.
-        registrationRenewer.addService(service);
+        synchronized(registrationRenewer) {
+          registrationRenewer.addService(service);
+        }
         registrationRenewer.notify();
         return null;
       } else {

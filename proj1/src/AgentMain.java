@@ -81,16 +81,16 @@ public class AgentMain {
     probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
     probeHandler.start();
 
-    // set up automatic service registration renewal thread.
-    registrationRenewer = new RegistrationRenewalThread(writeSocket, MAGIC_ID);
-    registrationRenewer.start();
-
     // Prepare for user commands.
     RequestHandler.setServer(serverAddress, serverPort);
     // Use only one attempt for each request because we print an error message
     // each time a request fails. A custom retry mechanism is implemented by
     // AgentMain.requestWithRetries.
     requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
+
+    // set up automatic service registration renewal thread.
+    registrationRenewer = new RegistrationRenewalThread(writeSocket, MAGIC_ID);
+    registrationRenewer.start();
 
     System.out.println("Running the tor61 registration client. Version 1.");
     System.out.println("Using server at " + serverAddress.getHostAddress() + ":" + serverPort);
@@ -165,7 +165,9 @@ public class AgentMain {
       if (requestHandler.registerService(service)) {
         System.out.println("Registered " + service + ".");
         registrationRenewer.addService(service);
-        //registrationRenewer.notify();
+        synchronized (registrationRenewer) {
+          registrationRenewer.notify();
+        }
         return null;
       } else {
         return Command.REGISTER;

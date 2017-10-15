@@ -34,8 +34,7 @@ public class ProbeHandlerThread extends Thread {
     while (true) {
       try {
         // Wait for a probe request.
-        DatagramPacket request =
-            new DatagramPacket(new byte[PACKET_SIZE], PACKET_SIZE);
+        DatagramPacket request = new DatagramPacket(new byte[PACKET_SIZE], PACKET_SIZE);
         socket.receive(request);
         System.out.println("received");
         if (request.getData()[0] == magicId[0] &&

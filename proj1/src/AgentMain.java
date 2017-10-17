@@ -182,7 +182,7 @@ public class AgentMain {
 
       if (requestHandler.unregisterService(service)) {
         System.out.println("Unregisted service on port " + service.iport + ".");
-        registrationRenewer.addService(service);
+        registrationRenewer.removeService(service);
         synchronized (registrationRenewer) {
           registrationRenewer.notify();
         }

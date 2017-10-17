@@ -21,8 +21,8 @@ public enum Command {
   }
 
   /** Converts a byte to a `Command`.
-      @return A `Command` associated with the byte.
-      @throws IllegalArgumentException if the `Command` is not recognized. */
+      @return A `Command` associated with the byte, or `null` if there is
+              no `Command` associated with it. */
   public static Command fromByte(byte b) {
     switch (b) {
     case 1: return Command.REGISTER;
@@ -32,7 +32,7 @@ public enum Command {
     case 5: return Command.UNREGISTER;
     case 6: return Command.PROBE;
     case 7: return Command.ACK;
-    default: throw new IllegalArgumentException();
+    default: return null;
     }
   }
 }

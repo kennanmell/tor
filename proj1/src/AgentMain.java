@@ -17,12 +17,15 @@ public class AgentMain {
   public static final int REQUEST_TIMEOUT_MS = 5000;
   /// The maximum number of times to send a request to the server before giving up.
   public static final int MAX_REQUEST_TRIES = 3;
-
+  /// The DatagramSocket used to read probe requests from the server.
   private static DatagramSocket readSocket = null;
+  /// The DatagramSocket used to send requests to the server.
   private static DatagramSocket writeSocket = null;
+  /// The RequestHandler used to make and send requests, except registration renewal requests.
   private static RequestHandler requestHandler;
-  private static InetAddress localhostIp;
+  /// The thread that handles automatic service registration renewal.
   private static RegistrationRenewalThread registrationRenewer;
+  /// The thread that handles probes from the server.
   private static ProbeHandlerThread probeHandler;
 
   public static void main(String[] args) {
@@ -48,13 +51,6 @@ public class AgentMain {
       return;
     }
 
-    try {
-      localhostIp = InetAddress.getLocalHost();
-    } catch (UnknownHostException e) {
-      System.out.println("fatal error");
-      return;
-    }
-
     // Bind to adjacent ports.
     int startPort = 1500;
     while (writeSocket == null || readSocket == null) {
@@ -71,10 +67,6 @@ public class AgentMain {
       }
     }
 
-    // Handle probes from server.
-    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
-    probeHandler.start();
-
     // Prepare for user commands.
     RequestHandler.setServer(serverAddress, serverPort);
     // Use only one attempt for each request because we print an error message
@@ -82,7 +74,11 @@ public class AgentMain {
     // AgentMain.requestWithRetries.
     requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
-    // set up automatic service registration renewal thread.
+    // Handle probes from server.
+    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
+    probeHandler.start();
+
+    // Handle automatic registration renewal.
     registrationRenewer = new RegistrationRenewalThread(
         new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES));
     registrationRenewer.start();
@@ -135,6 +131,14 @@ public class AgentMain {
       messages easier to print). Throws a ProtocolException if the command fails
       for a reason besides a timeout. */
   private static Command processStringCommand(String[] command) throws ProtocolException {
+    InetAddress localhostIp = null;
+    try {
+      localhostIp = InetAddress.getLocalHost();
+    } catch (UnknownHostException e) {
+      System.out.println("fatal error");
+      System.exit(0);
+    }
+
     if (command[0].equals("r") && command.length == 4) {
       // Register portnum data serviceName
       // Register this ip + portnum with the specified data and service name.
@@ -159,9 +163,6 @@ public class AgentMain {
       if (requestHandler.registerService(service)) {
         System.out.println("Registered " + service + ".");
         registrationRenewer.addService(service);
-        synchronized (registrationRenewer) {
-          registrationRenewer.notify();
-        }
         return null;
       } else {
         return Command.REGISTER;
@@ -183,9 +184,6 @@ public class AgentMain {
       if (requestHandler.unregisterService(service)) {
         System.out.println("Unregisted service on port " + service.iport + ".");
         registrationRenewer.removeService(service);
-        synchronized (registrationRenewer) {
-          registrationRenewer.notify();
-        }
         return null;
       } else {
         return Command.UNREGISTER;

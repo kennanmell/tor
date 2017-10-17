@@ -5,7 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 
-/** Thread that listens for probe requests from a server and responds
+/** Thread that listens for probe requests from a server and responds by
     acknowledging them. */
 public class ProbeHandlerThread extends Thread {
   /// Socket used to communicate with the server.

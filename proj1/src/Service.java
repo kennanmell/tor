@@ -13,11 +13,8 @@ public class Service {
   public final int data;
   /// The name of the service.
   public final String name;
-  /// The lifetime of the service. It will be automatically unregistered when
-  /// lastRegistrationTimeMs + lifetime == currentTime.
-  private int lifetime;
-  /// The last time this Service was registered with the server.
-  private long lastRegistrationTimeMs;
+  /// The approximate time in ms that this service's registration on the server will expire.
+  public long expirationTimeMillis;
 
   public Service(InetAddress ip, int iport, int data) {
     this(ip, iport, data, null);
@@ -31,30 +28,6 @@ public class Service {
     this.name = name;
   }
 
-  /** Sets the lifetime of this Service, i.e. how many ms it will be stored
-      on the server before being unregistered. */
-  public void setLifetime(int lifetime) {
-    this.lifetime = lifetime;
-  }
-
-  /** Gets the lifetime of this Service, i.e. how many ms it will be stored
-      on the server before being unregistered.
-      @return The lifetime. */
-  public int getLifetime() {
-    return this.lifetime;
-  }
-
-  /** Sets the last time the Service was registered with the server in ms. */
-  public void setLastRegistrationTimeMs(long ms) {
-    this.lastRegistrationTimeMs = ms;
-  }
-
-  /** Gets the last time the Service was registered with the server in ms.
-      @return The registration time. */
-  public long getLastRegistrationTimeMs() {
-    return this.lastRegistrationTimeMs;
-  }
-
   @Override
   public String toString() {
     if (name == null) {
@@ -62,5 +35,19 @@ public class Service {
     } else {
       return name + " at " + ip.getHostAddress() + ":" + iport;
     }
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    // The abstract value of a Service is determined solely by its ip and port
+    // but we assume that all Services registered by an agent have the same ip.
+    return (other instanceof Service) ? ((Service) other).iport == this.iport : false;
+  }
+
+  @Override
+  public int hashCode() {
+    // The abstract value of a Service is determined solely by its ip and port
+    // but we assume that all Services registered by an agent have the same ip.
+    return this.iport;
   }
 }

@@ -36,11 +36,9 @@ public class ProbeHandlerThread extends Thread {
         // Wait for a probe request.
         DatagramPacket request = new DatagramPacket(new byte[PACKET_SIZE], PACKET_SIZE);
         socket.receive(request);
-        System.out.println("received");
         if (request.getData()[0] == magicId[0] &&
             request.getData()[1] == magicId[1] &&
             request.getData()[3] == Command.PROBE.toByte()) {
-          System.out.println("valid");
           // Valid probe (magicId and command match). Respond with ack.
           byte[] buf = new byte[PACKET_SIZE];
           System.arraycopy(magicId, 0, buf, 0, 2);
@@ -51,7 +49,7 @@ public class ProbeHandlerThread extends Thread {
                                                        request.getAddress(),
                                                        request.getPort());
           socket.send(response);
-          System.out.println("Probed by server.");
+          System.out.println("Probed by server."); // TODO: move this to an AgentMain callback
         }
       } catch (SocketException e) {
         // Main thread is closing so we can stop.

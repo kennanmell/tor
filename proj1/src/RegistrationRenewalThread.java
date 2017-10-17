@@ -1,79 +1,73 @@
 package src;
 
-import java.net.DatagramSocket;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.Iterator;
 
 public class RegistrationRenewalThread extends Thread {
   private static final int BUFFER_TIME = 30000;
-  private TreeSet<Service> servicesToRegister;
-  private byte[] magicId;
-  private DatagramSocket socket;
-  private int magicID;
+  private List<Service> servicesToRegister;
+  private RequestHandler requestHandler;
+  private Comparator<Service> comparator;
 
-  public RegistrationRenewalThread(DatagramSocket socket, int magicID) {
-    if (socket == null) {
+  public RegistrationRenewalThread(RequestHandler requestHandler) {
+    if (requestHandler == null) {
       throw new IllegalArgumentException();
     }
-    this.servicesToRegister = new TreeSet<Service>();
-    this.socket = socket;
-    this.magicID = magicID;
-    // see if this is sorted by shortest time first
-    this.servicesToRegister = new TreeSet<Service>(new Comparator<Service>() {
+    this.requestHandler = requestHandler;
+    this.servicesToRegister = new ArrayList<>();
+    this.comparator = new Comparator<Service>() {
+      // Note: this comparator imposes orderings that are inconsistent with equals
       @Override
       public int compare(Service o1, Service o2) {
-        long currentTime = System.currentTimeMillis();
-        long o1TimeLeft = o1.getLifetime() - currentTime + o1.getLastRegistrationTimeMs();
-        long o2TimeLeft = o2.getLifetime() - currentTime + o2.getLastRegistrationTimeMs();
-        if (o1TimeLeft > o2TimeLeft) {
-          return 1;
-        } else if (o1TimeLeft == o2TimeLeft) {
-          return 0;
-        } else {
-          // o1TimeLeft < o2TimeLeft
-          return -1;
-        }
+        return Long.signum(o1.expirationTimeMillis - o2.expirationTimeMillis);
       }
-    });
+    };
   }
 
   public void addService(Service service) {
     synchronized (servicesToRegister) {
+      servicesToRegister.remove(service);
       servicesToRegister.add(service);
+      Collections.sort(servicesToRegister, comparator);
+    }
+  }
+
+  public void removeService(Service service) {
+    synchronized (servicesToRegister) {
+      servicesToRegister.remove(service);
     }
   }
 
   @Override
   public void run() {
     try {
-      // TODO: remove duplicate services
-      // TODO: check that waits and notifies are not buggy
       // TODO: callback to AgentMain when service is re-registered so main prints pregistration
-      RequestHandler requestHandler = new RequestHandler(magicID, socket, 3);
-      int waitTime = BUFFER_TIME;
-      boolean succeeded = false;
       while(true) {
         // pause thread until we need to handle nextmost request or if
         // client added another element.
         synchronized (this) {
-          this.wait(waitTime);
+          if (servicesToRegister.isEmpty()) {
+            this.wait();
+          } else {
+            this.wait(servicesToRegister.get(0).expirationTimeMillis -
+                      System.currentTimeMillis() - BUFFER_TIME);
+          }
         }
-        Service priorityService;
+
         synchronized(servicesToRegister) {
-          priorityService = this.servicesToRegister.pollFirst();
-          if (priorityService != null) {
+          while (!servicesToRegister.isEmpty() && servicesToRegister.get(0).expirationTimeMillis -
+                 System.currentTimeMillis() <= BUFFER_TIME) {
+            final Service currentService = servicesToRegister.get(0);
             try {
-              succeeded = requestHandler.registerService(priorityService);
-              servicesToRegister.add(priorityService);
-              System.out.println("Automatically renewed registration for " + priorityService);
+              requestHandler.registerService(servicesToRegister.get(0));
+              System.out.println("Automatically renewed registration for " + currentService);
             } catch (ProtocolException e) {
-              System.out.println("Failed to automatically renew registration for " + priorityService);
+              System.out.println("Failed to automatically renew registration for " + currentService);
             }
-            waitTime = Math.max(this.servicesToRegister.first().getLifetime() * 1000 - BUFFER_TIME, 0);
-            System.out.println(waitTime);
+            Collections.sort(servicesToRegister, comparator);
           }
         }
       }

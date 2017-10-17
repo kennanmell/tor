@@ -63,19 +63,13 @@ public class AgentMain {
         startPort++;
         readSocket = new DatagramSocket(1501);
         writeSocket.setSoTimeout(REQUEST_TIMEOUT_MS);
-        System.out.println(readSocket.getPort());
-        System.out.println(readSocket.getInetAddress());
       } catch (SocketException e) {
-        System.out.println("exception");
         startPort++;
         writeSocket = null;
         readSocket = null;
         continue;
       }
     }
-
-    System.out.println(readSocket);
-    System.out.println(readSocket.getPort());
 
     // Handle probes from server.
     probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
@@ -89,7 +83,8 @@ public class AgentMain {
     requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
     // set up automatic service registration renewal thread.
-    registrationRenewer = new RegistrationRenewalThread(writeSocket, MAGIC_ID);
+    registrationRenewer = new RegistrationRenewalThread(
+        new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES));
     registrationRenewer.start();
 
     System.out.println("Running the tor61 registration client. Version 1.");
@@ -128,7 +123,6 @@ public class AgentMain {
           System.out.println(type + " command failed.");
         }
       } catch (NoSuchElementException e) {
-        System.out.println("Unexpected character in input. Terminating.");
         writeSocket.close();
         readSocket.close();
         System.exit(0);
@@ -188,6 +182,10 @@ public class AgentMain {
 
       if (requestHandler.unregisterService(service)) {
         System.out.println("Unregisted service on port " + service.iport + ".");
+        registrationRenewer.addService(service);
+        synchronized (registrationRenewer) {
+          registrationRenewer.notify();
+        }
         return null;
       } else {
         return Command.UNREGISTER;

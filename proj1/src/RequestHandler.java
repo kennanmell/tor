@@ -98,9 +98,8 @@ public class RequestHandler {
               responseIsValid(response) &&
               Command.fromByte(response.getData()[3]) == Command.REGISTERED) {
             sequenceNo++;
-            service.setLifetime(
-                (response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF));
-            service.setLastRegistrationTimeMs(System.currentTimeMillis());
+            service.expirationTimeMillis = System.currentTimeMillis() +
+                (response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF) * 1000;
             return true;
           } else {
             throw new ProtocolException();
@@ -181,7 +180,7 @@ public class RequestHandler {
               new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
           socket.receive(response);
           if (responseIsValid(response) && (response.getLength() == (5 + (10 * response.getData()[4])))
-              && response.getLength() < MAX_UDP_PACKET_SIZE 
+              && response.getLength() < MAX_UDP_PACKET_SIZE
               && Command.fromByte(response.getData()[3]) == Command.FETCHRESPONSE) {
             sequenceNo++;
             byte[] message = response.getData();

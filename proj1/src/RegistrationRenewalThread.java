@@ -52,8 +52,9 @@ public class RegistrationRenewalThread extends Thread {
           if (servicesToRegister.isEmpty()) {
             this.wait();
           } else {
-            this.wait(servicesToRegister.get(0).expirationTimeMillis -
-                      System.currentTimeMillis() - BUFFER_TIME);
+            long waitTime = (servicesToRegister.get(0).expirationTimeMillis -
+                             System.currentTimeMillis() - BUFFER_TIME);
+            this.sleep(waitTime);
           }
         }
 

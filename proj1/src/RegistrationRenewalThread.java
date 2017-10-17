@@ -48,19 +48,25 @@ public class RegistrationRenewalThread extends Thread {
       while(true) {
         // pause thread until we need to handle nextmost request or if
         // client added another element.
+        System.out.println("0");
         synchronized (this) {
+          System.out.println("1");
           if (servicesToRegister.isEmpty()) {
+            System.out.println("2");
             this.wait();
           } else {
-            long waitTime = Math.max(servicesToRegister.get(0).expirationTimeMillis -
-                             System.currentTimeMillis() - BUFFER_TIME);
-            this.sleep(waitTime);
+            System.out.println("3");
+            this.sleep(Math.max(1, servicesToRegister.get(0).expirationTimeMillis -
+                                   System.currentTimeMillis() - BUFFER_TIME));
           }
         }
 
+        System.out.println("4");
         synchronized(servicesToRegister) {
+          System.out.println("5");
           while (!servicesToRegister.isEmpty() && servicesToRegister.get(0).expirationTimeMillis -
                  System.currentTimeMillis() <= BUFFER_TIME) {
+            System.out.println("6");
             final Service currentService = servicesToRegister.get(0);
             try {
               requestHandler.registerService(servicesToRegister.get(0));

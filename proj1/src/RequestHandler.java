@@ -99,7 +99,7 @@ public class RequestHandler {
               Command.fromByte(response.getData()[3]) == Command.REGISTERED) {
             sequenceNo++;
             service.expirationTimeMillis = System.currentTimeMillis() +
-                (response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF) * 1000;
+                ((response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF)) * 1000;
             return true;
           } else {
             throw new ProtocolException();

@@ -14,19 +14,30 @@ public class ProbeHandlerThread extends Thread {
   private static final int PACKET_SIZE = 4;
   /// A 2-byte id used to authenticate with the server.
   private byte[] magicId;
+  private Callback callback;
+
+  /** Creates a new ProbeHandlerThread.
+      @param socket The socket used to communicate with the server.
+      @param callback a Callback containing callback methods
+      @param magicId A 2-byte id used to authenticate with the server, represented as an int.
+      @throws IllegalArgumentException if `socket` is `null`. */
+  public ProbeHandlerThread(DatagramSocket socket, int magicId, Callback callback) {
+    if (socket == null) {
+      throw new IllegalArgumentException();
+    }
+    this.callback = callback;
+    this.socket = socket;
+    this.magicId = new byte[2];
+    this.magicId[0] = (byte) (magicId >> 8);
+    this.magicId[1] = (byte) magicId;
+  }
 
   /** Creates a new ProbeHandlerThread.
       @param socket The socket used to communicate with the server.
       @param magicId A 2-byte id used to authenticate with the server, represented as an int.
       @throws IllegalArgumentException if `socket` is `null`. */
   public ProbeHandlerThread(DatagramSocket socket, int magicId) {
-    if (socket == null) {
-      throw new IllegalArgumentException();
-    }
-    this.socket = socket;
-    this.magicId = new byte[2];
-    this.magicId[0] = (byte) (magicId >> 8);
-    this.magicId[1] = (byte) magicId;
+    this(socket, magicId, null);
   }
 
   @Override
@@ -49,13 +60,17 @@ public class ProbeHandlerThread extends Thread {
                                                        request.getAddress(),
                                                        request.getPort());
           socket.send(response);
-          System.out.println("Probed by server."); // TODO: move this to an AgentMain callback
+          if (this.callback != null) {
+            this.callback.onSuccess();
+          }
         }
       } catch (SocketException e) {
         // Main thread is closing so we can stop.
         return;
       } catch (IOException e) {
-        System.err.println("fatal error");
+        if (this.callback != null) {
+          this.callback.onFailure();
+        }
         System.exit(0);
       }
     }

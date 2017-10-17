@@ -75,12 +75,35 @@ public class AgentMain {
     requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
     // Handle probes from server.
-    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID);
+    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID,
+      new Callback() {
+        @Override
+        public void onSuccess() {
+          System.out.print("Probed by server.\n> ");
+        }
+        @Override
+        public void onFailure() {
+          System.err.println("fatal error");
+          System.exit(0);
+        }
+      });
     probeHandler.start();
 
     // Handle automatic registration renewal.
     registrationRenewer = new RegistrationRenewalThread(
-        new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES));
+      new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES),
+      new Callback() {
+        @Override
+        public void onSuccess(Service service) {
+          System.out.print("Automatically renewed registration for " + service + "\n> ");
+        }
+        @Override
+        public void onFailure(Service service) {
+          System.out.print("Failed to automatically renew registration for " + service + "\n> ");
+        }
+      }
+    );
+
     registrationRenewer.start();
 
     System.out.println("Running the tor61 registration client. Version 1.");

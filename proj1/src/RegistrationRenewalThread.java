@@ -55,15 +55,18 @@ public class RegistrationRenewalThread extends Thread {
             System.out.println("2");
             this.wait();
           } else {
-            System.out.println("3");
-            this.sleep(Math.max(1, servicesToRegister.get(0).expirationTimeMillis -
-                                   System.currentTimeMillis() - BUFFER_TIME));
+            long val = Math.max(1, servicesToRegister.get(0).expirationTimeMillis -
+                                   System.currentTimeMillis() - BUFFER_TIME);
+            System.out.println("3: " + val);
+            this.sleep(val);
           }
         }
 
         System.out.println("4");
         synchronized(servicesToRegister) {
           System.out.println("5");
+          System.out.println(servicesToRegister.get(0).expirationTimeMillis);
+          System.out.println(servicesToRegister.get(0).expirationTimeMillis - System.currentTimeMillis());
           while (!servicesToRegister.isEmpty() && servicesToRegister.get(0).expirationTimeMillis -
                  System.currentTimeMillis() <= BUFFER_TIME) {
             System.out.println("6");

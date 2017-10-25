@@ -14,30 +14,23 @@ public class ProbeHandlerThread extends Thread {
   private static final int PACKET_SIZE = 4;
   /// A 2-byte id used to authenticate with the server.
   private byte[] magicId;
-  private Callback callback;
+  private TaskListener taskListener;
 
   /** Creates a new ProbeHandlerThread.
       @param socket The socket used to communicate with the server.
-      @param callback a Callback containing callback methods
+      @param taskListener A TaskListener called when this thread responds to a probe
+                          or fails to do so.
       @param magicId A 2-byte id used to authenticate with the server, represented as an int.
       @throws IllegalArgumentException if `socket` is `null`. */
-  public ProbeHandlerThread(DatagramSocket socket, int magicId, Callback callback) {
+  public ProbeHandlerThread(DatagramSocket socket, int magicId, TaskListener taskListener) {
     if (socket == null) {
       throw new IllegalArgumentException();
     }
-    this.callback = callback;
+    this.taskListener = taskListener;
     this.socket = socket;
     this.magicId = new byte[2];
     this.magicId[0] = (byte) (magicId >> 8);
     this.magicId[1] = (byte) magicId;
-  }
-
-  /** Creates a new ProbeHandlerThread.
-      @param socket The socket used to communicate with the server.
-      @param magicId A 2-byte id used to authenticate with the server, represented as an int.
-      @throws IllegalArgumentException if `socket` is `null`. */
-  public ProbeHandlerThread(DatagramSocket socket, int magicId) {
-    this(socket, magicId, null);
   }
 
   @Override
@@ -60,18 +53,17 @@ public class ProbeHandlerThread extends Thread {
                                                        request.getAddress(),
                                                        request.getPort());
           socket.send(response);
-          if (this.callback != null) {
-            this.callback.onSuccess();
+          if (this.taskListener != null) {
+            this.taskListener.onSuccess(null);
           }
         }
       } catch (SocketException e) {
         // Main thread is closing so we can stop.
         return;
       } catch (IOException e) {
-        if (this.callback != null) {
-          this.callback.onFailure();
+        if (this.taskListener != null) {
+          this.taskListener.onFailure(null);
         }
-        System.exit(0);
       }
     }
   }

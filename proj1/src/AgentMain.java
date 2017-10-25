@@ -75,14 +75,13 @@ public class AgentMain {
     requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
 
     // Handle probes from server.
-    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID,
-      new Callback() {
+    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID, new TaskListener() {
         @Override
-        public void onSuccess() {
+        public void onSuccess(Service service) {
           System.out.print("Probed by server.\n> ");
         }
         @Override
-        public void onFailure() {
+        public void onFailure(Service service) {
           System.err.println("fatal error");
           System.exit(0);
         }
@@ -91,8 +90,7 @@ public class AgentMain {
 
     // Handle automatic registration renewal.
     registrationRenewer = new RegistrationRenewalThread(
-      new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES),
-      new Callback() {
+      new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES), new TaskListener() {
         @Override
         public void onSuccess(Service service) {
           System.out.print("Automatically renewed registration for " + service + "\n> ");

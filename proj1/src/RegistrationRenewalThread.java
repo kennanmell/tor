@@ -12,17 +12,18 @@ public class RegistrationRenewalThread extends Thread {
   private List<Service> servicesToRegister;
   private final RequestHandler requestHandler;
   private final Comparator<Service> comparator;
-  private Callback callback;
+  private TaskListener taskListener;
 
   /** Creates a new registration renewal thread.
       @param requestHandler The `RequestHandler` to use to send registrations to the server.
-      @param callback the Callback containing callback methods.
+      @param taskListener A TaskListener called when this thread successfully renews
+                          registration for a Service or fails to do so.
       @throws IllegalArgumentException If `requestHandler` is null. */
-  public RegistrationRenewalThread(RequestHandler requestHandler, Callback callback) {
+  public RegistrationRenewalThread(RequestHandler requestHandler, TaskListener taskListener) {
     if (requestHandler == null) {
       throw new IllegalArgumentException();
     }
-    this.callback = callback;
+    this.taskListener = taskListener;
     this.requestHandler = requestHandler;
     this.servicesToRegister = new ArrayList<>();
     this.comparator = new Comparator<Service>() {
@@ -87,12 +88,12 @@ public class RegistrationRenewalThread extends Thread {
             final Service currentService = servicesToRegister.get(0);
             try {
               requestHandler.registerService(servicesToRegister.get(0));
-              if (callback != null) {
-                callback.onSuccess(currentService);
+              if (taskListener != null) {
+                taskListener.onSuccess(currentService);
               }
             } catch (ProtocolException e) {
-              if (callback != null) {
-                callback.onFailure(currentService);
+              if (taskListener != null) {
+                taskListener.onFailure(currentService);
               }
             }
             Collections.sort(servicesToRegister, comparator);

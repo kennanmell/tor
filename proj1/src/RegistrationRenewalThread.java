@@ -6,19 +6,23 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+// Thread that renews registrations before they expire.
 public class RegistrationRenewalThread extends Thread {
   private static final int BUFFER_TIME = 30000;
   private List<Service> servicesToRegister;
   private final RequestHandler requestHandler;
   private final Comparator<Service> comparator;
+  private Callback callback;
 
-  /** Sole constructor.
+  /** Creates a new registration renewal thread.
       @param requestHandler The `RequestHandler` to use to send registrations to the server.
+      @param callback the Callback containing callback methods.
       @throws IllegalArgumentException If `requestHandler` is null. */
-  public RegistrationRenewalThread(RequestHandler requestHandler) {
+  public RegistrationRenewalThread(RequestHandler requestHandler, Callback callback) {
     if (requestHandler == null) {
       throw new IllegalArgumentException();
     }
+    this.callback = callback;
     this.requestHandler = requestHandler;
     this.servicesToRegister = new ArrayList<>();
     this.comparator = new Comparator<Service>() {
@@ -28,6 +32,13 @@ public class RegistrationRenewalThread extends Thread {
         return Long.signum(o1.expirationTimeMillis - o2.expirationTimeMillis);
       }
     };
+  }
+
+  /** Creates a new registration renewal thread.
+      @param requestHandler The `RequestHandler` to use to send registrations to the server.
+      @throws IllegalArgumentException If `requestHandler` is null. */
+  public  RegistrationRenewalThread(RequestHandler requestHandler) {
+    this(requestHandler, null);
   }
 
   /** Adds a `Service` to the list of services this thread should automatically
@@ -60,7 +71,6 @@ public class RegistrationRenewalThread extends Thread {
   @Override
   public void run() {
     try {
-      // TODO: callback to AgentMain when service is re-registered so main prints pregistration
       while(true) {
         // Wait until a service is about to expire.
         synchronized (this) {
@@ -77,9 +87,13 @@ public class RegistrationRenewalThread extends Thread {
             final Service currentService = servicesToRegister.get(0);
             try {
               requestHandler.registerService(servicesToRegister.get(0));
-              System.out.println("Automatically renewed registration for " + currentService);
+              if (callback != null) {
+                callback.onSuccess(currentService);
+              }
             } catch (ProtocolException e) {
-              System.out.println("Failed to automatically renew registration for " + currentService);
+              if (callback != null) {
+                callback.onFailure(currentService);
+              }
             }
             Collections.sort(servicesToRegister, comparator);
           }

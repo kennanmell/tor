@@ -39,13 +39,10 @@ public class RegistrationRenewalThread extends Thread {
       throw new IllegalArgumentException();
     }
 
-    synchronized (servicesToRegister) {
+    synchronized(this) {
       servicesToRegister.remove(service);
       servicesToRegister.add(service);
       Collections.sort(servicesToRegister, comparator);
-    }
-
-    synchronized(this) {
       notify();
     }
   }
@@ -54,11 +51,8 @@ public class RegistrationRenewalThread extends Thread {
       renew. Does nothing if the service is not being reregistered.
       @param service The service to remove. */
   public void removeService(Service service) {
-    synchronized (servicesToRegister) {
-      servicesToRegister.remove(service);
-    }
-
     synchronized(this) {
+      servicesToRegister.remove(service);
       notify();
     }
   }
@@ -76,9 +70,7 @@ public class RegistrationRenewalThread extends Thread {
             wait(Math.max(1, servicesToRegister.get(0).expirationTimeMillis -
                              System.currentTimeMillis() - BUFFER_TIME));
           }
-        }
 
-        synchronized(servicesToRegister) {
           // Renew registration for all services within BUFFER_TIME of expiring.
           while (!servicesToRegister.isEmpty() && servicesToRegister.get(0).expirationTimeMillis -
                  System.currentTimeMillis() <= BUFFER_TIME) {

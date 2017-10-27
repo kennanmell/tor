@@ -288,6 +288,9 @@ public class RequestHandler {
             sequenceNo++;
             return true;
           } else {
+            System.out.println(response.getLength());
+            System.out.println(responseIsValid(response));
+            System.out.println(response.getData()[3]);
             if (listener != null) {
               listener.onRequestError(Command.PROBE);
             }

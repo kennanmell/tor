@@ -8,25 +8,33 @@ import java.net.SocketException;
 /** Thread that listens for probe requests from a server and responds by
     acknowledging them. */
 public class ProbeHandlerThread extends Thread {
+  /// Callbacks for events in a probe handler thread.
+  public interface ProbeEventListener {
+    /// Called by the probe handler when it receives a probe and responds to it.
+    void onProbe();
+    /// Called by the probe handler when it encounters a fatal error and will terminate.
+    void onFatalError();
+  }
   /// Socket used to communicate with the server.
   private DatagramSocket socket;
   /// The size in bytes of a probe or ack packet (including the header).
   private static final int PACKET_SIZE = 4;
   /// A 2-byte id used to authenticate with the server.
   private byte[] magicId;
-  private TaskListener taskListener;
+  /// Used to notify a listener of events on this thread.
+  private ProbeEventListener listener;
 
   /** Creates a new ProbeHandlerThread.
       @param socket The socket used to communicate with the server.
-      @param taskListener A TaskListener called when this thread responds to a probe
+      @param listener A ProbeEventListener called when this thread responds to a probe
                           or fails to do so.
       @param magicId A 2-byte id used to authenticate with the server, represented as an int.
       @throws IllegalArgumentException if `socket` is `null`. */
-  public ProbeHandlerThread(DatagramSocket socket, int magicId, TaskListener taskListener) {
+  public ProbeHandlerThread(DatagramSocket socket, int magicId, ProbeEventListener listener) {
     if (socket == null) {
       throw new IllegalArgumentException();
     }
-    this.taskListener = taskListener;
+    this.listener = listener;
     this.socket = socket;
     this.magicId = new byte[2];
     this.magicId[0] = (byte) (magicId >> 8);
@@ -53,17 +61,18 @@ public class ProbeHandlerThread extends Thread {
                                                        request.getAddress(),
                                                        request.getPort());
           socket.send(response);
-          if (this.taskListener != null) {
-            this.taskListener.onSuccess(null);
+          if (this.listener != null) {
+            this.listener.onProbe();
           }
         }
       } catch (SocketException e) {
         // Main thread is closing so we can stop.
         return;
       } catch (IOException e) {
-        if (this.taskListener != null) {
-          this.taskListener.onFailure(null);
+        if (this.listener != null) {
+          this.listener.onFatalError();
         }
+        return;
       }
     }
   }

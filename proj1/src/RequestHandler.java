@@ -15,6 +15,18 @@ import java.nio.ByteBuffer;
     the same server but instances can have different auth tokens, sockets,
     and retry counts. */
 public class RequestHandler {
+  /// Callbacks for events during a request.
+  public interface RequestEventListener {
+    /** Called by a RequestHandler when a request times out (the handler may retry the request).
+        @param command The Command type whose request timed out.
+        @param willRetry True only if the RequestHandler will try sending the request again. */
+    void onRequestTimedOut(Command command, boolean willRetry);
+
+    /** Called by a RequestHandler when a request fails for a reason besides timeout (a
+        protocol error). This type of error will never result in the request being retried.
+        @param command The Command type whose request failed. */
+    void onRequestError(Command command);
+  }
   // The maximum number of bytes in a UDP packet (excluding the default header).
   private static final int MAX_UDP_PACKET_SIZE = 65507;
   // A byte array of length 2 representing the ID used to authenticate with the server.
@@ -23,6 +35,8 @@ public class RequestHandler {
   private DatagramSocket socket;
   // The maximum number of times to try a request before considering it failed.
   private int maxAttempts;
+  // Used to notify the client when a request times out or succeeds.
+  private RequestEventListener listener;
 
   // The IP address of the server.
   private static InetAddress serverAddress = null;
@@ -48,8 +62,12 @@ public class RequestHandler {
       @param magicId The 2-byte authentication token to use when sending data to the server.
       @param socket The socket to use to communicate with the server.
       @param maxAttempts The maximum number of times to try a request before giving up.
-      @throws IllegalStateException If the server has not been defined by `RequestHandler.setServer` */
-  public RequestHandler(int magicId, DatagramSocket socket, int maxAttempts) {
+      @throws IllegalStateException If the server has not been defined by `RequestHandler.setServer`
+  */
+  public RequestHandler(int magicId,
+                        DatagramSocket socket,
+                        int maxAttempts,
+                        RequestEventListener listener) {
     if (RequestHandler.serverAddress == null) {
       throw new IllegalStateException();
     }
@@ -58,27 +76,30 @@ public class RequestHandler {
     this.magicId[1] = (byte) magicId;
     this.socket = socket;
     this.maxAttempts = maxAttempts;
+    this.listener = listener;
   }
 
-  /** Registers a `Service` with the server.
+  /** Registers a `Service` with the server. This is a blocking IO call.
       @param service The `Service` to register.
       @return `true` if the registration was confirmed by the server, `false` if
-              it was not, presumably because the request(s) timed out.
-      @throws ProtocolException If the server responds with an invalid packet
-              or there is another IO error. */
-  public boolean registerService(Service service) throws ProtocolException {
+              it was not, presumably because the request(s) timed out. */
+  public boolean registerService(Service service) {
     synchronized (lock) {
       final int packetSize = 15 + service.name.length(); // 15-byte header
       if (packetSize > MAX_UDP_PACKET_SIZE) {
         // A packet too large to send is a protocol violation.
-        throw new ProtocolException();
+        if (listener != null) {
+          listener.onRequestError(Command.REGISTER);
+        }
+        return false;
       }
 
       // Make the buffer to send.
       byte[] buf = filledBufferOfSize(packetSize); // header
       buf[3] = Command.REGISTER.toByte(); // command
       System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4); // ip
-      System.arraycopy(ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
+      System.arraycopy(
+          ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
       System.arraycopy(ByteBuffer.allocate(4).putInt(service.data).array(), 0, buf, 10, 4); // data
       buf[14] = (byte) service.name.length(); // name length
       System.arraycopy(service.name.getBytes(), 0, buf, 15, service.name.length()); // name
@@ -102,31 +123,40 @@ public class RequestHandler {
                 ((response.getData()[4] & 0xFF) << 8 | (response.getData()[5] & 0xFF)) * 1000;
             return true;
           } else {
-            throw new ProtocolException();
+            if (listener != null) {
+              listener.onRequestError(Command.REGISTER);
+            }
+            break;
           }
         } catch (SocketTimeoutException e) {
+          if (listener != null) {
+            listener.onRequestTimedOut(Command.REGISTER, i != maxAttempts - 1);
+          }
           continue;
         } catch (IOException e) {
-          throw new ProtocolException();
+          if (listener != null) {
+            listener.onRequestError(Command.REGISTER);
+          }
+          break;
         }
       }
+      sequenceNo++;
       return false;
     }
   }
 
-  /** Unregisters a `Service` with the server.
+  /** Unregisters a `Service` with the server. This is a blocking IO call.
       @param service The `Service` to unregister.
       @return `true` if the unregistration was confirmed by the server, `false` if
-              it was not, presumably because the request(s) timed out.
-      @throws ProtocolException If the server responds with an invalid packet
-              or there is another IO error. */
-  public boolean unregisterService(Service service) throws ProtocolException {
+              it was not, presumably because the request(s) timed out. */
+  public boolean unregisterService(Service service) {
     synchronized (lock) {
       // Make the buffer to send.
       byte[] buf = filledBufferOfSize(10); // header
       buf[3] = Command.UNREGISTER.toByte(); // command
       System.arraycopy(service.ip.getAddress(), 0, buf, 4, 4); // ip
-      System.arraycopy(ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
+      System.arraycopy(
+          ByteBuffer.allocate(2).putShort((short) service.iport).array(), 0, buf, 8, 2); // port
 
       // Try to send the buffer and get a response.
       for (int i = 0; i < maxAttempts; i++) {
@@ -145,26 +175,35 @@ public class RequestHandler {
             sequenceNo++;
             return true;
           } else {
-            throw new ProtocolException();
+            if (listener != null) {
+              listener.onRequestError(Command.UNREGISTER);
+            }
+            break;
           }
         } catch (SocketTimeoutException e) {
+          if (listener != null) {
+            listener.onRequestTimedOut(Command.UNREGISTER, i != maxAttempts - 1);
+          }
           continue;
         } catch (IOException e) {
-          throw new ProtocolException();
+          if (listener != null) {
+            listener.onRequestError(Command.UNREGISTER);
+          }
+          break;
         }
       }
+      sequenceNo++;
       return false;
     }
   }
 
   /** Fetches some subset of services whose names start with 'start'. If 'start'
-      is the empty String, any subset of services may be returned.
+      is the empty String, any subset of services may be returned. This is a blocking
+      IO call.
       @param start The start of each Service name to return.
       @return A list of Services whose names start with 'start', or `null` if the
-              server did not respond.
-      @throws ProtocolException If the server responds with an invalid packet
-              or there is another IO error. */
-  public Service[] fetchServicesBeginningWith(String start) throws ProtocolException {
+              server did not respond. */
+  public Service[] fetchServicesBeginningWith(String start) {
     synchronized (lock) {
       int nameLength = start.length();
       byte[] buf = filledBufferOfSize(5 + nameLength);
@@ -179,7 +218,8 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[MAX_UDP_PACKET_SIZE], MAX_UDP_PACKET_SIZE);
           socket.receive(response);
-          if (responseIsValid(response) && (response.getLength() == (5 + (10 * response.getData()[4])))
+          if (responseIsValid(response)
+              && (response.getLength() == (5 + (10 * response.getData()[4])))
               && response.getLength() < MAX_UDP_PACKET_SIZE
               && Command.fromByte(response.getData()[3]) == Command.FETCHRESPONSE) {
             sequenceNo++;
@@ -200,24 +240,32 @@ public class RequestHandler {
             }
             return services;
           } else {
-            throw new ProtocolException();
+            if (listener != null) {
+              listener.onRequestError(Command.FETCH);
+            }
+            break;
           }
         } catch (SocketTimeoutException e) {
+          if (listener != null) {
+            listener.onRequestTimedOut(Command.FETCH, i != maxAttempts - 1);
+          }
           continue;
         } catch (IOException e) {
-          throw new ProtocolException();
+          if (listener != null) {
+            listener.onRequestError(Command.FETCH);
+          }
+          break;
         }
       }
+      sequenceNo++;
       return null;
     }
   }
 
-  /** Probes the server.
+  /** Probes the server. This is a blocking IO call.
       @return `true` if the server responds to the probe, `false` if
-              it does not, presumably because the request(s) timed out.
-      @throws ProtocolException If the server responds with an invalid packet
-              or there is another IO error. */
-  public boolean probeServer() throws ProtocolException {
+              it does not, presumably because the request(s) timed out. */
+  public boolean probeServer() {
     synchronized (lock) {
       // Make the buffer to send.
       byte[] buf = filledBufferOfSize(4); // header
@@ -234,20 +282,30 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[4], 4);
           socket.receive(response);
+          sequenceNo++;
           if (response.getLength() == 4 &&
               responseIsValid(response) &&
               Command.fromByte(response.getData()[3]) == Command.ACK) {
-            sequenceNo++;
             return true;
           } else {
-            throw new ProtocolException();
+            if (listener != null) {
+              listener.onRequestError(Command.PROBE);
+            }
+            return false;
           }
         } catch (SocketTimeoutException e) {
+          if (listener != null) {
+            listener.onRequestTimedOut(Command.PROBE, i != maxAttempts - 1);
+          }
           continue;
         } catch (IOException e) {
-          throw new ProtocolException();
+          if (listener != null) {
+            listener.onRequestError(Command.PROBE);
+          }
+          break;
         }
       }
+      sequenceNo++;
       return false;
     }
   }

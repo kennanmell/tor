@@ -69,38 +69,62 @@ public class AgentMain {
 
     // Prepare for user commands.
     RequestHandler.setServer(serverAddress, serverPort);
-    // Use only one attempt for each request because we print an error message
-    // each time a request fails. A custom retry mechanism is implemented by
-    // AgentMain.requestWithRetries.
-    requestHandler = new RequestHandler(MAGIC_ID, writeSocket, 1);
+
+    requestHandler = new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES,
+        new RequestHandler.RequestEventListener() {
+      @Override
+      public void onRequestTimedOut(Command command, boolean willRetry) {
+        if (willRetry) {
+          System.out.println(command + " command timed out. Retrying.");
+        } else {
+          System.out.println(command + " command timed out.");
+          System.out.println(command + " command failed.");
+        }
+      }
+
+      @Override
+      public void onRequestError(Command command) {
+        System.out.println(command + " command failed.");
+      }
+    });
 
     // Handle probes from server.
-    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID, new TaskListener() {
-        @Override
-        public void onSuccess(Service service) {
-          System.out.print("Probed by server.\n> ");
-        }
-        @Override
-        public void onFailure(Service service) {
-          System.err.println("fatal error");
-          System.exit(0);
-        }
-      });
+    probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID,
+        new ProbeHandlerThread.ProbeEventListener() {
+      @Override
+      public void onProbe() {
+        System.out.print("Probed by server.\n> ");
+      }
+
+      @Override
+      public void onFatalError() {
+        System.out.println("fatal error in server probe listener");
+        System.exit(0);
+      }
+    });
     probeHandler.start();
 
     // Handle automatic registration renewal.
     registrationRenewer = new RegistrationRenewalThread(
-      new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES), new TaskListener() {
-        @Override
-        public void onSuccess(Service service) {
-          System.out.print("Automatically renewed registration for " + service + "\n> ");
-        }
-        @Override
-        public void onFailure(Service service) {
-          System.out.print("Failed to automatically renew registration for " + service + "\n> ");
-        }
+        new RequestHandler(MAGIC_ID, writeSocket, MAX_REQUEST_TRIES, null),
+        new RegistrationRenewalThread.RegistrationEventListener() {
+      @Override
+      public void onServiceRegistrationRenewed(Service service) {
+        System.out.print("Automatically renewed registration for " + service + "\n> ");
       }
-    );
+
+      @Override
+      public void onServiceRegistrationExpired(Service service) {
+        System.out.print("Failed to automatically renew registration for " + service + "\n> ");
+        registrationRenewer.removeService(service);
+      }
+
+      @Override
+      public void onFatalError() {
+        System.out.println("fatal error in automatic registration renewal");
+        System.exit(0);
+      }
+    });
 
     registrationRenewer.start();
 
@@ -120,25 +144,7 @@ public class AgentMain {
           continue;
         }
 
-        // Custom retry mechanism with error messages to stdout.
-        Command type = null;
-        for (int i = 0; i < MAX_REQUEST_TRIES; i++) {
-          try {
-            type = processStringCommand(command);
-            if (type == null) {
-              break;
-            } else {
-              System.out.println(type + " command timed out. Retrying.");
-            }
-          } catch (ProtocolException e) {
-            System.out.println("command failed.");
-            break;
-          }
-        }
-
-        if (type != null) {
-          System.out.println(type + " command failed.");
-        }
+        processStringCommand(command);
       } catch (NoSuchElementException e) {
         writeSocket.close();
         readSocket.close();
@@ -147,16 +153,14 @@ public class AgentMain {
     }
   }
 
-  /** Attempts to process user input as a command. Returns null if the command
-      succeeds, but returns the type of the command if it times out (to make error
-      messages easier to print). Throws a ProtocolException if the command fails
-      for a reason besides a timeout. */
-  private static Command processStringCommand(String[] command) throws ProtocolException {
+  /** Attempts to process a user input as a command and execute that command.
+      Lets the user know via printing if the command is invalid or if it succeeds. */
+  private static void processStringCommand(String[] command) {
     InetAddress localhostIp = null;
     try {
       localhostIp = InetAddress.getLocalHost();
     } catch (UnknownHostException e) {
-      System.out.println("fatal error");
+      System.out.println("fatal error finding ip");
       System.exit(0);
     }
 
@@ -170,13 +174,13 @@ public class AgentMain {
         iport = Integer.parseInt(command[1]);
       } catch (NumberFormatException e) {
         System.out.println("Invalid port for REGISTER command.");
-        return Command.REGISTER;
+        return;
       }
       try {
         data = (int) Long.parseLong(command[2]); // parse unsigned int
       } catch (NumberFormatException e) {
         System.out.println("Invalid data for REGISTER command.");
-        return Command.REGISTER;
+        return;
       }
 
       Service service = new Service(localhostIp, iport, data, serviceName);
@@ -184,9 +188,6 @@ public class AgentMain {
       if (requestHandler.registerService(service)) {
         System.out.println("Registered " + service + ".");
         registrationRenewer.addService(service);
-        return null;
-      } else {
-        return Command.REGISTER;
       }
     } else if (command[0].equals("u") && command.length == 2) {
       // Unregister portnum
@@ -196,7 +197,7 @@ public class AgentMain {
         iport = Integer.parseInt(command[1]);
       } catch (NumberFormatException e) {
         System.out.println("Invalid port for UNREGISTER command.");
-        return Command.UNREGISTER;
+        return;
       }
 
       // Last two arguments of the service are not used.
@@ -205,15 +206,12 @@ public class AgentMain {
       if (requestHandler.unregisterService(service)) {
         System.out.println("Unregisted service on port " + service.iport + ".");
         registrationRenewer.removeService(service);
-        return null;
-      } else {
-        return Command.UNREGISTER;
       }
     } else if (command[0].equals("f") && (command.length == 1 || command.length == 2)) {
       // Fetch <name prefix>
       // Fetch name prefix info from registration service, print returned info.
       final String prefix = command.length == 1 ? "" : command[1];
-      Service[] services = requestHandler.fetchServicesBeginningWith(prefix);
+      final Service[] services = requestHandler.fetchServicesBeginningWith(prefix);
       if (services != null) {
         if (services.length == 0) {
           if (prefix.length() == 0) {
@@ -221,7 +219,6 @@ public class AgentMain {
           } else {
             System.out.println("Found no services starting with " + prefix + ".");
           }
-          return null;
         } else if (services.length == 1) {
           if (prefix.length() == 0) {
             System.out.println("Found 1 service:");
@@ -232,24 +229,20 @@ public class AgentMain {
           if (prefix.length() == 0) {
             System.out.println("Found " + services.length + " services:");
           } else {
-            System.out.println("Found " + services.length + " services starting with " + prefix + ":");
+            System.out.println(
+                "Found " + services.length + " services starting with " + prefix + ":");
           }
         }
         for (int i = 0; i < services.length; i++) {
           System.out.println("    " + services[i]);
         }
-        return null;
-      } else {
-        return Command.FETCH;
       }
     } else if (command[0].equals("p") && command.length == 1) {
       // Probe.
       // See if registration service is alive.
       if (requestHandler.probeServer()) {
         System.out.println("Probed server.");
-        return null;
       }
-      return Command.PROBE;
     } else if (command[0].equals("h") && command.length == 1) {
       System.out.println("Commands:");
       System.out.println("REGISTER: r <portnum> <data> <serviceName>");
@@ -258,17 +251,14 @@ public class AgentMain {
       System.out.println("PROBE: p");
       System.out.println("HELP: h");
       System.out.println("QUIT: q");
-      return null;
     } else if (command[0].equals("q") && command.length == 1) {
       // Quit.
       writeSocket.close();
       readSocket.close();
       System.exit(0);
-      return null;
     } else {
       // Invalid.
       System.out.println("Invalid command. Type \"h\" for command list.");
-      return null;
     }
   }
 }

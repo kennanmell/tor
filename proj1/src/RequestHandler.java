@@ -282,16 +282,16 @@ public class RequestHandler {
           final DatagramPacket response =
               new DatagramPacket(new byte[4], 4);
           socket.receive(response);
-          sequenceNo++;
           if (response.getLength() == 4 &&
               responseIsValid(response) &&
               Command.fromByte(response.getData()[3]) == Command.ACK) {
+            sequenceNo++;
             return true;
           } else {
             if (listener != null) {
               listener.onRequestError(Command.PROBE);
             }
-            return false;
+            break;
           }
         } catch (SocketTimeoutException e) {
           if (listener != null) {

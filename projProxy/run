@@ -1,0 +1,7 @@
+#!/bin/bash
+
+argOne=1
+
+javac src/*.java
+java src/ProxyMain ${!argOne}
+

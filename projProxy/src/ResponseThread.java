@@ -33,8 +33,6 @@ public class ResponseThread extends Thread {
         writeSocket.getOutputStream().write(line.getBytes());
       }
     } catch (IOException e) {
-      e.printStackTrace();
-      System.out.println("fatal error");
       return;
     }
   }

@@ -21,6 +21,9 @@ public class ResponseThread extends Thread {
           new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
       while (true) {
         String line = inBuffer.readLine();
+        if (line == null) {
+          continue;
+        }
         if (line.equals("Connection: keep-alive")) {
           line = "Connection: close";
         } else if (line.equals("Proxy-connection: keep-alive")) {

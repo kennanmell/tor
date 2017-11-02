@@ -17,11 +17,17 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      System.out.println("running response thread");
+      BufferedReader inBuffer =
+          new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
       while (true) {
-        int b = readSocket.getInputStream().read();
-        writeSocket.getOutputStream().write(b);
-        System.out.println("debug: response sent >> " + b);
+        String line = inBuffer.readLine();
+        if (line.equals("Connection: keep-alive")) {
+          line = "Connection: close";
+        } else if (line.equals("Proxy-connection: keep-alive")) {
+          line = "Proxy-connection: close";
+        }
+        line += "\n";
+        writeSocket.getOutputStream().write(line.getBytes());
       }
     } catch (IOException e) {
       e.printStackTrace();

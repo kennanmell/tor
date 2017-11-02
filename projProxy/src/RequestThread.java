@@ -67,7 +67,7 @@ public class RequestThread extends Thread {
         } else if (line.trim().toLowerCase().startsWith("connect")) {
           // Connect request
           try {
-            clientSocket = socketFromString(line.trim().substring(8).trim());
+            clientSocket = socketFromString(line.split(" ")[1]);
             ResponseThread newThread = new ResponseThread(clientSocket, socket);
             newThread.start();
             clientSocket.getOutputStream().write("200\n".getBytes());

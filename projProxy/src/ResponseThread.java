@@ -17,16 +17,14 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      BufferedReader inBuffer =
-          new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
+      System.out.println("running response thread");
       while (true) {
-        String line = inBuffer.readLine();
-        if (line != null) {
-          writeSocket.getOutputStream().write(line.getBytes());
-          System.out.println("debug: response sent >> " + line);
-        }
+        int b = readSocket.getInputStream().read();
+        writeSocket.getOutputStream().write(b);
+        System.out.println("debug: response sent >> " + b);
       }
     } catch (IOException e) {
+      e.printStackTrace();
       System.out.println("fatal error");
       return;
     }

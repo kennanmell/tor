@@ -44,8 +44,8 @@ public class RequestThread extends Thread {
           //System.out.print(">>> " + line);
         }
 
-        if (line.length() == 1 && line.charAt(0) == "\n") ||
-            line.length() == 2 && line.charAt(1) == "\n") {
+        if ((line.length() == 1 && line.charAt(0) == '\n') ||
+            (line.length() == 2 && line.charAt(1) == '\n')) {
           // End of HTTP request.
           currentHeaderLines.clear();
           clientSocket = null;

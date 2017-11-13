@@ -55,7 +55,7 @@ public class RequestThread extends Thread {
           ResponseThread newThread = new ResponseThread(clientSocket, socket);
           newThread.start();
           while (!currentHeaderLines.isEmpty()) {
-            System.out.println(currentHeaderLines.get(0)); // debug
+            System.out.print(currentHeaderLines.get(0)); // debug
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (line.equalsIgnoreCase("Connection: keep-alive\n")) {
@@ -68,9 +68,9 @@ public class RequestThread extends Thread {
             clientSocket = socketFromString(line.split(" ")[1]);
             ResponseThread newThread = new ResponseThread(clientSocket, socket);
             newThread.start();
-            clientSocket.getOutputStream().write("200\n".getBytes());
+            clientSocket.getOutputStream().write("HTTP/1.1 200 OK\n".getBytes());
           } catch (UnknownHostException e) {
-            clientSocket.getOutputStream().write("502\n".getBytes());
+            clientSocket.getOutputStream().write("HTTP/1.1 502 Bad Gateway\n".getBytes());
           }
           continue;
         }
@@ -78,7 +78,7 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(line);
         } else {
-          System.out.println(line); // debug
+          System.out.print(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
         }
       } catch (IOException e) {

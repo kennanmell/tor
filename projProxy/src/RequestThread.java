@@ -44,8 +44,8 @@ public class RequestThread extends Thread {
           //System.out.print(">>> " + line);
         }
 
-        if (line.length() == 1 && line.charAt(0) == ((char) 10) ||
-            line.length() == 2 && line.charAt(1) == ((char) 10)) {
+        if (line.length() == 1 && line.charAt(0) == "\n") ||
+            line.length() == 2 && line.charAt(1) == "\n") {
           // End of HTTP request.
           currentHeaderLines.clear();
           clientSocket = null;
@@ -68,9 +68,9 @@ public class RequestThread extends Thread {
             clientSocket = socketFromString(line.split(" ")[1]);
             ResponseThread newThread = new ResponseThread(clientSocket, socket);
             newThread.start();
-            clientSocket.getOutputStream().write(("HTTP/1.1 200 OK\n" + (char) 10).getBytes());
+            clientSocket.getOutputStream().write("HTTP/1.1 200 OK\n\n".getBytes());
           } catch (UnknownHostException e) {
-            clientSocket.getOutputStream().write(("HTTP/1.1 502 Bad Gateway\n" + (char) 10).getBytes());
+            clientSocket.getOutputStream().write("HTTP/1.1 502 Bad Gateway\n\n".getBytes());
           }
           continue;
         }

@@ -88,6 +88,7 @@ public class RequestThread extends Thread {
         //}
       }
     } catch (IOException e) {
+      e.printStackTrace();
       System.out.println("fatal error 3");
       return;
     }

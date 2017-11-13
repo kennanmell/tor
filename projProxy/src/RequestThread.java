@@ -23,7 +23,7 @@ public class RequestThread extends Thread {
     try {
       this.inBuffer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     } catch (IOException e) {
-      System.out.println("fatal error");
+      System.out.println("fatal error 4");
     }
 
     this.currentHeaderLines = new ArrayList<>();
@@ -88,7 +88,7 @@ public class RequestThread extends Thread {
         //}
       }
     } catch (IOException e) {
-      System.out.println("fatal error");
+      System.out.println("fatal error 3");
       return;
     }
   }

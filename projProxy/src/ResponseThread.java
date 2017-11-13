@@ -19,12 +19,8 @@ public class ResponseThread extends Thread {
     try {
       BufferedReader inBuffer =
           new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
-      while (true) {
-        String line = inBuffer.readLine();
-        if (line == null) {
-          System.out.println("null");
-          continue;
-        }
+      String line;
+      while ((line = inBuffer.readLine()) != null) {
         if (line.equals("Connection: keep-alive")) {
           line = "Connection: close";
         } else if (line.equals("Proxy-connection: keep-alive")) {
@@ -33,12 +29,6 @@ public class ResponseThread extends Thread {
         line += "\n";
         System.out.print(line);
         writeSocket.getOutputStream().write(line.getBytes());
-
-        if ((line.length() == 1 && line.charAt(0) == '\n') ||
-            (line.length() == 2 && line.charAt(1) == '\n')) {
-          // End of HTTP response.
-          return;
-        }
       }
     } catch (IOException e) {
       return;

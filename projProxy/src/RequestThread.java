@@ -32,12 +32,14 @@ public class RequestThread extends Thread {
 
   @Override
   public void run() {
-    while (true) {
+    String line;
+    while ((line = inBuffer.readLine()) != null) {
       try {
-        String line = inBuffer.readLine() + "\n";
-        if (line == null) {
-          continue;
-        }
+        line += "\n";
+        //String line = inBuffer.readLine() + "\n";
+        //if (line == null) {
+        //  continue;
+        //}
 
         if (clientSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
@@ -77,10 +79,10 @@ public class RequestThread extends Thread {
           clientSocket.getOutputStream().write(line.getBytes());
         }
 
-        if ((line.length() == 1 && line.charAt(0) == '\n') ||
-            (line.length() == 2 && line.charAt(1) == '\n')) {
-          // End of HTTP request.
-          return;
+        //if ((line.length() == 1 && line.charAt(0) == '\n') ||
+        //    (line.length() == 2 && line.charAt(1) == '\n')) {
+        //  // End of HTTP request.
+        //  return;
           //currentHeaderLines.clear();
           //clientSocket = null;
         }

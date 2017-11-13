@@ -33,8 +33,8 @@ public class RequestThread extends Thread {
   @Override
   public void run() {
     String line;
-    while ((line = inBuffer.readLine()) != null) {
-      try {
+    try {
+      while ((line = inBuffer.readLine()) != null) {
         line += "\n";
         //String line = inBuffer.readLine() + "\n";
         //if (line == null) {
@@ -85,11 +85,11 @@ public class RequestThread extends Thread {
         //  return;
           //currentHeaderLines.clear();
           //clientSocket = null;
-        }
-      } catch (IOException e) {
-        System.out.println("fatal error");
-        return;
+        //}
       }
+    } catch (IOException e) {
+      System.out.println("fatal error");
+      return;
     }
   }
 

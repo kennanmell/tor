@@ -22,6 +22,7 @@ public class ResponseThread extends Thread {
       while (true) {
         String line = inBuffer.readLine();
         if (line == null) {
+          System.out.println("null");
           continue;
         }
         if (line.equals("Connection: keep-alive")) {
@@ -32,6 +33,12 @@ public class ResponseThread extends Thread {
         line += "\n";
         System.out.print(line);
         writeSocket.getOutputStream().write(line.getBytes());
+
+        if ((line.length() == 1 && line.charAt(0) == '\n') ||
+            (line.length() == 2 && line.charAt(1) == '\n')) {
+          // End of HTTP response.
+          return;
+        }
       }
     } catch (IOException e) {
       return;

@@ -44,13 +44,7 @@ public class RequestThread extends Thread {
           //System.out.print(">>> " + line);
         }
 
-        if ((line.length() == 1 && line.charAt(0) == '\n') ||
-            (line.length() == 2 && line.charAt(1) == '\n')) {
-          // End of HTTP request.
-          System.out.println("HEADERLINESLENGTH!!!_-_-_ " + currentHeaderLines.size());
-          currentHeaderLines.clear();
-          clientSocket = null;
-        } else if (line.trim().toLowerCase().startsWith("host")) {
+        if (line.trim().toLowerCase().startsWith("host")) {
           // Host line.
           clientSocket = socketFromString(line.trim().substring(6).trim());
           ResponseThread newThread = new ResponseThread(clientSocket, socket);
@@ -81,6 +75,14 @@ public class RequestThread extends Thread {
         } else {
           //System.out.print(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
+        }
+
+        if ((line.length() == 1 && line.charAt(0) == '\n') ||
+            (line.length() == 2 && line.charAt(1) == '\n')) {
+          // End of HTTP request.
+          return;
+          //currentHeaderLines.clear();
+          //clientSocket = null;
         }
       } catch (IOException e) {
         System.out.println("fatal error");

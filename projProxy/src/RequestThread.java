@@ -47,6 +47,7 @@ public class RequestThread extends Thread {
         if ((line.length() == 1 && line.charAt(0) == '\n') ||
             (line.length() == 2 && line.charAt(1) == '\n')) {
           // End of HTTP request.
+          System.out.println("HEADERLINESLENGTH!!!_-_-_ " + currentHeaderLines.size());
           currentHeaderLines.clear();
           clientSocket = null;
         } else if (line.trim().toLowerCase().startsWith("host")) {

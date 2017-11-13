@@ -71,7 +71,7 @@ public class RequestThread extends Thread {
           } catch (UnknownHostException e) {
             clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\n\n".getBytes());
           }
-          continue;
+          return;
         }
 
         if (clientSocket == null) {

@@ -41,7 +41,7 @@ public class RequestThread extends Thread {
 
         if (clientSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
-          System.out.print(">>> " + line);
+          //System.out.print(">>> " + line);
         }
 
         if (line.length() == 1 && line.charAt(0) == ((char) 10) ||
@@ -55,14 +55,12 @@ public class RequestThread extends Thread {
           ResponseThread newThread = new ResponseThread(clientSocket, socket);
           newThread.start();
           while (!currentHeaderLines.isEmpty()) {
-            System.out.println("debug: sent line >> " + currentHeaderLines.get(0));
+            System.out.println(currentHeaderLines.get(0)); // debug
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (line.equalsIgnoreCase("Connection: keep-alive\n")) {
-          System.out.println("debug: closing keep-alive");
           line = "Connection: close\n";
         } else if (line.equalsIgnoreCase("Proxy-connection: keep-alive\n")) {
-          System.out.println("debug: closing proxy-connection");
           line = "Proxy-connection: close\n";
         } else if (line.trim().toLowerCase().startsWith("connect")) {
           // Connect request
@@ -80,7 +78,7 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(line);
         } else {
-          System.out.println("debug: sent line >> " + line);
+          System.out.println(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
         }
       } catch (IOException e) {
@@ -107,7 +105,6 @@ public class RequestThread extends Thread {
       iport = 80;
     }
 
-    System.out.println("debug: new response thread >> " + ip + ":" + iport);
     return new Socket(ip, iport);
   }
 }

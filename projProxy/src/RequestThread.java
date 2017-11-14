@@ -33,9 +33,10 @@ public class RequestThread extends Thread {
   @Override
   public void run() {
     String line;
+    boolean isConnect = false;
     try {
       while ((line = inBuffer.readLine()) != null) {
-        line += "\n";
+        line += "\r\n";
         //String line = inBuffer.readLine() + "\n";
         //if (line == null) {
         //  continue;
@@ -52,27 +53,39 @@ public class RequestThread extends Thread {
           // Host line.
           if (clientSocket == null) {
             clientSocket = socketFromString(line.trim().substring(6).trim());
-            ResponseThread newThread = new ResponseThread(clientSocket, socket);
-            newThread.start();
+            try {
+              ResponseThread newThread = new ResponseThread(clientSocket, socket);
+              newThread.start();
+              if (isConnect) {
+                clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n".getBytes()); // TODO: need another \n?
+              }
+            } catch (UnknownHostException e) {
+              if (isConnect) {
+                clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n".getBytes()); // need another \n?
+              }
+            }
           }
           while (!currentHeaderLines.isEmpty()) {
             System.out.print(currentHeaderLines.get(0)); // debug
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
-        } else if (line.equalsIgnoreCase("Connection: keep-alive\n")) {
+        } else if (line.equalsIgnoreCase("Connection: keep-alive\r\n")) {
           line = "Connection: close\n";
-        } else if (line.equalsIgnoreCase("Proxy-connection: keep-alive\n")) {
+        } else if (line.equalsIgnoreCase("Proxy-connection: keep-alive\r\n")) {
           line = "Proxy-connection: close\n";
         } else if (line.trim().toLowerCase().startsWith("connect")) {
           // Connect request
+          isConnect = true;
+          /*
           try {
             clientSocket = socketFromString(line.split(" ")[1]);
             ResponseThread newThread = new ResponseThread(clientSocket, socket);
             newThread.start();
-            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\n".getBytes()); // TODO: need another \n?
+            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n".getBytes()); // TODO: need another \n?
           } catch (UnknownHostException e) {
-            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\n".getBytes()); // need another \n?
+            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n".getBytes()); // need another \n?
           }
+          */
           continue;
         }
 
@@ -91,8 +104,9 @@ public class RequestThread extends Thread {
           //clientSocket = null;
         //}
       }
-      clientSocket.getOutputStream().write("\n".getBytes());
+      clientSocket.getOutputStream().write("\r\n".getBytes());
     } catch (IOException e) {
+      e.printStackTrace();
       System.out.println("fatal error 3");
       return;
     }

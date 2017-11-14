@@ -26,7 +26,7 @@ public class ResponseThread extends Thread {
         } else if (line.equals("Proxy-connection: keep-alive")) {
           line = "Proxy-connection: close";
         }
-        line += "\n";
+        line += "\r\n";
         //System.out.print(line);
         writeSocket.getOutputStream().write(line.getBytes());
       }

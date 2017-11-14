@@ -92,6 +92,7 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(line);
         } else {
+          System.out.println("ERROR isConnect: " + isConnect);
           System.out.print(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
         }

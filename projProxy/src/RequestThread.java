@@ -57,11 +57,11 @@ public class RequestThread extends Thread {
               ResponseThread newThread = new ResponseThread(clientSocket, socket);
               newThread.start();
               if (isConnect) {
-                clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n".getBytes()); // TODO: need another \n?
+                socket.getOutputStream().write("HTTP/1.0 200 OK\r\n".getBytes()); // TODO: need another \n?
               }
             } catch (UnknownHostException e) {
               if (isConnect) {
-                clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n".getBytes()); // need another \n?
+                socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n".getBytes()); // need another \n?
               }
             }
           }

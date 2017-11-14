@@ -54,7 +54,7 @@ public class RequestThread extends Thread {
           ResponseThread newThread = new ResponseThread(clientSocket, socket);
           newThread.start();
           while (!currentHeaderLines.isEmpty()) {
-            //System.out.print(currentHeaderLines.get(0)); // debug
+            System.out.print(currentHeaderLines.get(0)); // debug
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (line.equalsIgnoreCase("Connection: keep-alive\n")) {
@@ -77,7 +77,7 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(line);
         } else {
-          //System.out.print(line); // debug
+          System.out.print(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
         }
 

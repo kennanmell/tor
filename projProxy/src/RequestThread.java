@@ -50,9 +50,11 @@ public class RequestThread extends Thread {
 
         if (line.trim().toLowerCase().startsWith("host")) {
           // Host line.
-          clientSocket = socketFromString(line.trim().substring(6).trim());
-          ResponseThread newThread = new ResponseThread(clientSocket, socket);
-          newThread.start();
+          if (clientSocket == null) {
+            clientSocket = socketFromString(line.trim().substring(6).trim());
+            ResponseThread newThread = new ResponseThread(clientSocket, socket);
+            newThread.start();
+          }
           while (!currentHeaderLines.isEmpty()) {
             System.out.print(currentHeaderLines.get(0)); // debug
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
@@ -91,7 +93,6 @@ public class RequestThread extends Thread {
       }
       clientSocket.getOutputStream().write("\n".getBytes());
     } catch (IOException e) {
-      e.printStackTrace();
       System.out.println("fatal error 3");
       return;
     }

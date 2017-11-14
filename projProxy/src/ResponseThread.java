@@ -20,7 +20,7 @@ public class ResponseThread extends Thread {
       String line = "";
       int curr;
       while ((curr = readSocket.getInputStream().read()) != -1) {
-        line += curr;
+        line += (char) curr;
         if (curr == (int) '\n') {
           if (line.trim().equals("Connection: keep-alive")) {
             line = "Connection: close\r\n";

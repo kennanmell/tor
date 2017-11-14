@@ -67,11 +67,11 @@ public class RequestThread extends Thread {
             clientSocket = socketFromString(line.split(" ")[1]);
             ResponseThread newThread = new ResponseThread(clientSocket, socket);
             newThread.start();
-            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\n".getBytes());
+            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\n".getBytes()); // TODO: need another \n?
           } catch (UnknownHostException e) {
-            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\n".getBytes());
+            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\n".getBytes()); // need another \n?
           }
-          return;
+          continue;
         }
 
         if (clientSocket == null) {
@@ -94,6 +94,8 @@ public class RequestThread extends Thread {
       System.out.println("fatal error 3");
       return;
     }
+
+    clientSocket.getOutputStream().write("\n".getBytes());
   }
 
   private Socket socketFromString(String inetAddressString) throws IOException {

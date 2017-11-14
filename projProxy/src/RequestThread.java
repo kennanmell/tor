@@ -37,8 +37,10 @@ public class RequestThread extends Thread {
     boolean isConnect = false;
     try {
       while ((curr = socket.getInputStream().read()) != -1) {
+        System.out.println("in loop");
         line += (char) curr;
         if (curr != (int) '\n') {
+          System.out.println("in if");
           continue;
         }
         //String line = inBuffer.readLine() + "\n";

@@ -42,6 +42,11 @@ public class RequestThread extends Thread {
         //  continue;
         //}
 
+        if (line.equals("\r\n")) {
+          clientSocket.getOutputStream().write("\r\n");
+          return;
+        }
+
         if (clientSocket == null && currentHeaderLines.isEmpty()) {
           line = line.replace("HTTP/1.1", "HTTP/1.0");
 
@@ -92,7 +97,6 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(line);
         } else {
-          System.out.println("ERROR isConnect: " + isConnect);
           System.out.print(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
         }

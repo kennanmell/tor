@@ -89,13 +89,12 @@ public class RequestThread extends Thread {
           //clientSocket = null;
         //}
       }
+      clientSocket.getOutputStream().write("\n".getBytes());
     } catch (IOException e) {
       e.printStackTrace();
       System.out.println("fatal error 3");
       return;
     }
-
-    clientSocket.getOutputStream().write("\n".getBytes());
   }
 
   private Socket socketFromString(String inetAddressString) throws IOException {

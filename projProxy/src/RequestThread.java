@@ -43,6 +43,7 @@ public class RequestThread extends Thread {
         //}
 
         if (line.equals("\r\n")) {
+          System.out.println();
           clientSocket.getOutputStream().write("\r\n".getBytes());
           return;
         }

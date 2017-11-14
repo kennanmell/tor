@@ -40,7 +40,7 @@ public class RequestThread extends Thread {
         System.out.println("in loop");
         line += (char) curr;
         if (curr != (int) '\n') {
-          System.out.println("in if");
+          System.out.println((char) curr);
           continue;
         }
         //String line = inBuffer.readLine() + "\n";

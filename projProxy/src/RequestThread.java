@@ -32,19 +32,23 @@ public class RequestThread extends Thread {
 
   @Override
   public void run() {
-    String line;
+    String line = "";
+    int curr;
     boolean isConnect = false;
     try {
-      while ((line = inBuffer.readLine()) != null) {
-        line += "\r\n";
+      while ((curr = socket.getInputStream().read()) != -1) {
+        line += (char) curr;
+        if (curr != (int) '\n') {
+          continue;
+        }
         //String line = inBuffer.readLine() + "\n";
         //if (line == null) {
         //  continue;
         //}
 
-        if (line.equals("\r\n")) {
-          //System.out.println(); // debug
-          clientSocket.getOutputStream().write("\r\n".getBytes());
+        if (line.equals("\r\n") || line.equals("\n")) {
+          System.out.println(); // debug
+          clientSocket.getOutputStream().write(line.getBytes());
           return;
         }
 
@@ -72,7 +76,7 @@ public class RequestThread extends Thread {
             }
           }
           while (!currentHeaderLines.isEmpty()) {
-            //System.out.print(currentHeaderLines.get(0)); // debug
+            System.out.print(currentHeaderLines.get(0)); // debug
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (line.equalsIgnoreCase("Connection: keep-alive\r\n")) {
@@ -98,7 +102,7 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(line);
         } else {
-          //System.out.print(line); // debug
+          System.out.print(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
         }
 

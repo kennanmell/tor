@@ -19,6 +19,7 @@ public class ResponseThread extends Thread {
     try {
       BufferedReader inBuffer =
           new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
+          /*
       String line;
       while ((line = inBuffer.readLine()) != null) {
         line = line.replace("HTTP/1.1", "HTTP/1.0");
@@ -30,16 +31,33 @@ public class ResponseThread extends Thread {
         line += "\r\n";
         System.out.print(line); // debug
         writeSocket.getOutputStream().write(line.getBytes());
-        //if (line.equals("\r\n")) {
-        //  System.out.println("DEBUG IN BREAK");
-        //  break;
-        //}
+        if (line.equals("\r\n")) {
+          break;
+        }
       }
-
-      //int curr;
-      //while ((curr = inBuffer.read()) != -1) {
-      //    writeSocket.getOutputStream().write(curr);
-      //}
+*/
+      boolean parsedHeader = false;
+      String line = "";
+      int curr;
+      while ((curr = inBuffer.read()) != -1) {
+          if (parsedHeader) {
+            writeSocket.getOutputStream().write(curr);
+          } else {
+            line += (char) curr;
+            if (curr == (int) '\n') {
+              if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
+                line = "Connection: close\r\n";
+              } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
+                line = "Proxy-connection: close\r\n";
+              }
+            }
+            writeSocket.getOutputStream().write(line.getBytes());
+            if (line.equals("\n") || line.equals("\r\n")) {
+              parsedHeader = true;
+            }
+            line = "";
+          }
+      }
     } catch (IOException e) {
       return;
     }

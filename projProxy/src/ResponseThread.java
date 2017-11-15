@@ -17,11 +17,11 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      boolean parsedHeader = false;
+      boolean sentHeader = false;
       StringBuilder line = new StringBuilder();
       int curr;
       while ((curr = readSocket.getInputStream().read()) != -1) {
-        if (parsedHeader) {
+        if (sentHeader) {
           writeSocket.getOutputStream().write(curr);
         } else {
           line.append((char) curr);
@@ -37,7 +37,7 @@ public class ResponseThread extends Thread {
             System.out.print(line);
             writeSocket.getOutputStream().write(line.toString().getBytes());
             if (lineString.equals("\n") || lineString.equals("\r\n")) {
-              parsedHeader = true;
+              sentHeader = true;
             }
             line = new StringBuilder();
           }

@@ -32,13 +32,25 @@ public class RequestThread extends Thread {
 
   @Override
   public void run() {
-    String line;
+    StringBuilder line = new StringBuilder();
     boolean isConnect = false;
+    boolean sentHeader = false;
+    int curr;
     try {
-      while ((line = inBuffer.readLine()) != null) {
-        line += "\r\n";
+      while ((curr = socket.getInputStream().read()) != -1) {
+        if (sentHeader && !isConnect) {
+          clientSocket.getOutputStream().write(curr);
+          continue;
+        }
 
-        if (line.equals("\r\n")) {
+        line.append((char) curr);
+        if (curr != (int) '\n') {
+          continue;
+        }
+
+        String lineString = line.toString();
+        line = new StringBuilder();
+        if (lineString.equals("\r\n") || lineString.equals("\n")) {
           if (isConnect) {
             (new ConnectTunnelingThread(socket, clientSocket)).start();
             (new ConnectTunnelingThread(clientSocket, socket)).start();
@@ -47,43 +59,46 @@ public class RequestThread extends Thread {
             } catch (UnknownHostException e) {
               socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             }
+            return;
           } else {
             System.out.print(line);
-            clientSocket.getOutputStream().write(line.getBytes());
+            clientSocket.getOutputStream().write(lineString.getBytes());
+            sentHeader = true;
           }
-          return;
         }
 
         if (isConnect) {
           continue;
         }
 
-        if (clientSocket == null && currentHeaderLines.isEmpty()) {
-          line = line.replace("HTTP/1.1", "HTTP/1.0");
+        if (lineString.contains("HTTP/1.1")) {
+          lineString = lineString.replace("HTTP/1.1", "HTTP/1.0");
+        }
 
+        if (clientSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
           System.out.print(">>> " + line);
         }
 
-        if (line.trim().toLowerCase().startsWith("host")) {
+        if (lineString.trim().toLowerCase().startsWith("host")) {
           // Host line.
           if (clientSocket == null) {
-            clientSocket = socketFromString(line.trim().substring(6).trim());
+            clientSocket = socketFromString(lineString.trim().substring(6).trim());
             (new ResponseThread(clientSocket, socket)).start();
           }
           while (!currentHeaderLines.isEmpty()) {
             System.out.print(currentHeaderLines.get(0));
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
-        } else if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
-          line = "Connection: close\r\n";
-        } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
-          line = "Proxy-connection: close\r\n";
-        } else if (line.trim().toLowerCase().startsWith("connect")) {
+        } else if (lineString.trim().equalsIgnoreCase("Connection: keep-alive")) {
+          lineString = "Connection: close\r\n";
+        } else if (lineString.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
+          lineString = "Proxy-connection: close\r\n";
+        } else if (lineString.trim().toLowerCase().startsWith("connect")) {
           // Connect request
           isConnect = true;
           try {
-            clientSocket = socketFromString(line.split(" ")[1]);
+            clientSocket = socketFromString(lineString.split(" ")[1]);
           } catch (UnknownHostException e) {
             socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             return;
@@ -92,10 +107,10 @@ public class RequestThread extends Thread {
         }
 
         if (clientSocket == null) {
-          currentHeaderLines.add(line);
+          currentHeaderLines.add(lineString);
         } else {
-          System.out.print(line);
-          clientSocket.getOutputStream().write(line.getBytes());
+          System.out.print(lineString);
+          clientSocket.getOutputStream().write(lineString.getBytes());
         }
       }
     } catch (IOException e) {
@@ -121,6 +136,8 @@ public class RequestThread extends Thread {
       iport = 80;
     }
 
-    return new Socket(ip, iport);
+    Socket resultSocket = new Socket(ip, iport);
+    resultSocket.setSoTimeout(ProxyMain.SO_TIMEOUT_MS);
+    return resultSocket;
   }
 }

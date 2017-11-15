@@ -30,6 +30,14 @@ public class ResponseThread extends Thread {
         line += "\r\n";
         System.out.print(line); // debug
         writeSocket.getOutputStream().write(line.getBytes());
+        if (line.equals("\r\n")) {
+          break;
+        }
+      }
+
+      int curr;
+      while ((curr = readSocket.getInputStream().read()) != -1) {
+          writeSocket.getOutputStream().write(curr);
       }
     } catch (IOException e) {
       return;

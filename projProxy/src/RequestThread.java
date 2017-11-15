@@ -64,7 +64,7 @@ public class RequestThread extends Thread {
           line = line.replace("HTTP/1.1", "HTTP/1.0");
 
           // Print the first line of the request.
-          //System.out.print(">>> " + line);
+          System.out.print(">>> " + line);
         }
 
         if (line.trim().toLowerCase().startsWith("host")) {

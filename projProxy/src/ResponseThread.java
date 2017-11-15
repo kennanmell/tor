@@ -27,7 +27,7 @@ public class ResponseThread extends Thread {
           line = "Proxy-connection: close";
         }
         line += "\r\n";
-        //System.out.print(line); // debug
+        System.out.print(line); // debug
         writeSocket.getOutputStream().write(line.getBytes());
       }
     } catch (IOException e) {

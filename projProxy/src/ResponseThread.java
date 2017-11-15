@@ -17,25 +17,6 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      //BufferedReader inBuffer =
-      //    new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
-          /*
-      String line;
-      while ((line = inBuffer.readLine()) != null) {
-        line = line.replace("HTTP/1.1", "HTTP/1.0");
-        if (line.equals("Connection: keep-alive")) {
-          line = "Connection: close";
-        } else if (line.equals("Proxy-connection: keep-alive")) {
-          line = "Proxy-connection: close";
-        }
-        line += "\r\n";
-        System.out.print(line); // debug
-        writeSocket.getOutputStream().write(line.getBytes());
-        if (line.equals("\r\n")) {
-          break;
-        }
-      }
-*/
       boolean parsedHeader = false;
       String line = "";
       int curr;
@@ -50,12 +31,13 @@ public class ResponseThread extends Thread {
               } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
                 line = "Proxy-connection: close\r\n";
               }
+              System.out.print(line);
+              writeSocket.getOutputStream().write(line.getBytes());
+              if (line.equals("\n") || line.equals("\r\n")) {
+                parsedHeader = true;
+              }
+              line = "";
             }
-            writeSocket.getOutputStream().write(line.getBytes());
-            if (line.equals("\n") || line.equals("\r\n")) {
-              parsedHeader = true;
-            }
-            line = "";
           }
       }
     } catch (IOException e) {

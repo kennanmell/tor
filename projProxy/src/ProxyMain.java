@@ -24,6 +24,9 @@ public class ProxyMain {
     } catch (IOException e) {
       System.out.println("fatal error");
       return;
+    } catch (IllegalArgumentException e) {
+      System.out.println("Port value out of range.");
+      return;
     }
 
     System.out.println("Proxy listening on 0.0.0.0:" + iport);

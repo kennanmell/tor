@@ -71,7 +71,7 @@ public class RequestThread extends Thread {
           // Host line.
           if (clientSocket == null) {
             clientSocket = socketFromString(line.trim().substring(6).trim());
-            ConnectTunnelingThread newThread = new ConnectTunnelingThread(clientSocket, socket);
+            ResponseThread newThread = new ResponseThread(clientSocket, socket);
             newThread.start();
           }
           while (!currentHeaderLines.isEmpty()) {

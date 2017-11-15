@@ -23,7 +23,7 @@ public class RequestThread extends Thread {
     try {
       this.inBuffer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     } catch (IOException e) {
-      System.out.println("fatal error 4");
+      System.out.println("fatal error");
     }
 
     this.currentHeaderLines = new ArrayList<>();
@@ -54,7 +54,6 @@ public class RequestThread extends Thread {
               socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes()); // need another \n?
             }
           } else {
-            //System.out.println(); // debug
             clientSocket.getOutputStream().write(line.getBytes());
           }
           return;
@@ -68,7 +67,7 @@ public class RequestThread extends Thread {
           line = line.replace("HTTP/1.1", "HTTP/1.0");
 
           // Print the first line of the request.
-          //System.out.print(">>> " + line);
+          System.out.print(">>> " + line);
         }
 
         if (line.trim().toLowerCase().startsWith("host")) {
@@ -79,7 +78,6 @@ public class RequestThread extends Thread {
             newThread.start();
           }
           while (!currentHeaderLines.isEmpty()) {
-            //System.out.print(currentHeaderLines.get(0)); // debug
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (line.equalsIgnoreCase("Connection: keep-alive\r\n")) {
@@ -101,21 +99,11 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(line);
         } else {
-          //System.out.print(line); // debug
           clientSocket.getOutputStream().write(line.getBytes());
         }
-
-        //if ((line.length() == 1 && line.charAt(0) == '\n') ||
-        //    (line.length() == 2 && line.charAt(1) == '\n')) {
-        //  // End of HTTP request.
-        //  return;
-          //currentHeaderLines.clear();
-          //clientSocket = null;
-        //}
       }
     } catch (IOException e) {
-      e.printStackTrace();
-      System.out.println("fatal error 3");
+      System.out.println("fatal error");
       return;
     }
   }

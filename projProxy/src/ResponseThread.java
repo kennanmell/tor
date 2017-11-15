@@ -17,28 +17,28 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      boolean parsedHeader = false;
+      boolean parsedHeader = true;
       String line = "";
       int curr;
       while ((curr = readSocket.getInputStream().read()) != -1) {
-          if (parsedHeader) {
-            writeSocket.getOutputStream().write(curr);
-          } else {
-            line += (char) curr;
-            if (curr == (int) '\n') {
-              if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
-                line = "Connection: close\r\n";
-              } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
-                line = "Proxy-connection: close\r\n";
-              }
-              System.out.print(line);
-              writeSocket.getOutputStream().write(line.getBytes());
-              if (line.equals("\n") || line.equals("\r\n")) {
-                parsedHeader = true;
-              }
-              line = "";
+        if (parsedHeader) {
+          writeSocket.getOutputStream().write(curr);
+        } else {
+          line += (char) curr;
+          if (curr == (int) '\n') {
+            if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
+              line = "Connection: close\r\n";
+            } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
+              line = "Proxy-connection: close\r\n";
             }
+            System.out.print(line);
+            writeSocket.getOutputStream().write(line.getBytes());
+            if (line.equals("\n") || line.equals("\r\n")) {
+              parsedHeader = true;
+            }
+            line = "";
           }
+        }
       }
     } catch (IOException e) {
       return;

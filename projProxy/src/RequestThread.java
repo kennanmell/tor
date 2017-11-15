@@ -78,10 +78,10 @@ public class RequestThread extends Thread {
             System.out.print(currentHeaderLines.get(0));
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
-        } else if (line.equalsIgnoreCase("Connection: keep-alive\r\n")) {
-          line = "Connection: close\n";
-        } else if (line.equalsIgnoreCase("Proxy-connection: keep-alive\r\n")) {
-          line = "Proxy-connection: close\n";
+        } else if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
+          line = "Connection: close\r\n";
+        } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
+          line = "Proxy-connection: close\r\n";
         } else if (line.trim().toLowerCase().startsWith("connect")) {
           // Connect request
           isConnect = true;

@@ -88,7 +88,7 @@ public class RequestThread extends Thread {
           try {
             clientSocket = socketFromString(line.split(" ")[1]);
           } catch (UnknownHostException e) {
-            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
+            socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             return;
           }
           continue;

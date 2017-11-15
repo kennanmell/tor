@@ -17,8 +17,8 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      BufferedReader inBuffer =
-          new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
+      //BufferedReader inBuffer =
+      //    new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
           /*
       String line;
       while ((line = inBuffer.readLine()) != null) {
@@ -39,7 +39,7 @@ public class ResponseThread extends Thread {
       boolean parsedHeader = false;
       String line = "";
       int curr;
-      while ((curr = inBuffer.read()) != -1) {
+      while ((curr = readSocket.getInputStream().read()) != -1) {
           if (parsedHeader) {
             writeSocket.getOutputStream().write(curr);
           } else {

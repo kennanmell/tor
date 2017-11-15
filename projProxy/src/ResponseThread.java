@@ -17,7 +17,7 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      boolean parsedHeader = true;
+      boolean parsedHeader = false;
       String line = "";
       int curr;
       while ((curr = readSocket.getInputStream().read()) != -1) {
@@ -26,6 +26,7 @@ public class ResponseThread extends Thread {
         } else {
           line += (char) curr;
           if (curr == (int) '\n') {
+            line = line.replace("HTTP/1.1", "HTTP/1.0");
             if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
               line = "Connection: close\r\n";
             } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {

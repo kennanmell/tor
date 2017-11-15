@@ -22,7 +22,7 @@ public class ProxyMain {
     try {
       serverSocket = new ServerSocket(iport);
     } catch (IOException e) {
-      System.out.println("fatal error 1");
+      System.out.println("fatal error");
       return;
     }
 
@@ -33,7 +33,7 @@ public class ProxyMain {
         RequestThread newThread = new RequestThread(serverSocket.accept());
         newThread.start();
       } catch (IOException e) {
-        System.out.println("fatal error 2");
+        System.out.println("fatal error");
         return;
       }
     }

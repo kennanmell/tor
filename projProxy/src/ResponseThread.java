@@ -37,7 +37,7 @@ public class ResponseThread extends Thread {
       }
 
       int curr;
-      while ((curr = readSocket.getInputStream().read()) != -1) {
+      while ((curr = inBuffer.read()) != -1) {
           writeSocket.getOutputStream().write(curr);
       }
     } catch (IOException e) {

@@ -45,9 +45,9 @@ public class RequestThread extends Thread {
             clientToServer.start();
             serverToClient.start();
             try {
-              socket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes()); // TODO: need another \n?
+              socket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
             } catch (UnknownHostException e) {
-              socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes()); // need another \n?
+              socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             }
           } else {
             System.out.print(line);
@@ -61,7 +61,7 @@ public class RequestThread extends Thread {
         }
 
         if (clientSocket == null && currentHeaderLines.isEmpty()) {
-          line = line.replace("HTTP/1.1", "HTTP/1.0");
+          //line = line.replace("HTTP/1.1", "HTTP/1.0");
 
           // Print the first line of the request.
           System.out.print(">>> " + line);
@@ -79,16 +79,16 @@ public class RequestThread extends Thread {
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (line.equalsIgnoreCase("Connection: keep-alive\r\n")) {
-          line = "Connection: close\n";
+          //line = "Connection: close\n";
         } else if (line.equalsIgnoreCase("Proxy-connection: keep-alive\r\n")) {
-          line = "Proxy-connection: close\n";
+          //line = "Proxy-connection: close\n";
         } else if (line.trim().toLowerCase().startsWith("connect")) {
           // Connect request
           isConnect = true;
           try {
             clientSocket = socketFromString(line.split(" ")[1]);
           } catch (UnknownHostException e) {
-            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes()); // need another \n?
+            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             return;
           }
           continue;

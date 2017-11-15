@@ -28,9 +28,9 @@ public class ResponseThread extends Thread {
           if (curr == (int) '\n') {
             line = line.replace("HTTP/1.1", "HTTP/1.0");
             if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
-              line = "Connection: close\r\n";
+              //line = "Connection: close\r\n";
             } else if (line.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
-              line = "Proxy-connection: close\r\n";
+              //line = "Proxy-connection: close\r\n";
             }
             System.out.print(line);
             writeSocket.getOutputStream().write(line.getBytes());

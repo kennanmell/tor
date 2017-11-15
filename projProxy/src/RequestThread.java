@@ -40,10 +40,8 @@ public class RequestThread extends Thread {
 
         if (line.equals("\r\n")) {
           if (isConnect) {
-            ConnectTunnelingThread clientToServer = new ConnectTunnelingThread(socket, clientSocket);
-            ConnectTunnelingThread serverToClient = new ConnectTunnelingThread(clientSocket, socket);
-            clientToServer.start();
-            serverToClient.start();
+            (new ConnectTunnelingThread(socket, clientSocket)).start();
+            (new ConnectTunnelingThread(clientSocket, socket)).start();
             try {
               socket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
             } catch (UnknownHostException e) {
@@ -71,8 +69,7 @@ public class RequestThread extends Thread {
           // Host line.
           if (clientSocket == null) {
             clientSocket = socketFromString(line.trim().substring(6).trim());
-            ResponseThread newThread = new ResponseThread(clientSocket, socket);
-            newThread.start();
+            (new ResponseThread(clientSocket, socket)).start();
           }
           while (!currentHeaderLines.isEmpty()) {
             System.out.print(currentHeaderLines.get(0));

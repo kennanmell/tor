@@ -31,6 +31,8 @@ public class ProxyMain {
 
     System.out.println("Proxy listening on 0.0.0.0:" + iport);
 
+    (new EofListenerThread()).start();
+
     while (true) {
       try {
         RequestThread newThread = new RequestThread(serverSocket.accept());

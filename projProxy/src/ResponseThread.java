@@ -17,20 +17,18 @@ public class ResponseThread extends Thread {
   @Override
   public void run() {
     try {
-      String line = "";
-      int curr;
-      while ((curr = readSocket.getInputStream().read()) != -1) {
-        line += (char) curr;
-        if (curr == (int) '\n') {
-          if (line.trim().equals("Connection: keep-alive")) {
-            line = "Connection: close\r\n";
-          } else if (line.equals("Proxy-connection: keep-alive")) {
-            line = "Proxy-connection: close\r\n";
-          }
-          //System.out.print(line); // debug
-          writeSocket.getOutputStream().write(line.getBytes());
-          line = "";
+      BufferedReader inBuffer =
+          new BufferedReader(new InputStreamReader(readSocket.getInputStream()));
+      String line;
+      while ((line = inBuffer.readLine()) != null) {
+        if (line.equals("Connection: keep-alive")) {
+          line = "Connection: close";
+        } else if (line.equals("Proxy-connection: keep-alive")) {
+          line = "Proxy-connection: close";
         }
+        line += "\r\n";
+        //System.out.print(line); // debug
+        writeSocket.getOutputStream().write(line.getBytes());
       }
     } catch (IOException e) {
       return;

@@ -43,9 +43,25 @@ public class RequestThread extends Thread {
         //}
 
         if (line.equals("\r\n")) {
-          //System.out.println(); // debug
-          clientSocket.getOutputStream().write("\r\n".getBytes());
+          if (isConnect) {
+            ConnectTunnelingThread clientToServer = new ConnectTunnelingThread(socket, clientSocket);
+            ConnectTunnelingThread serverToClient = new ConnectTunnelingThread(clientSocket, socket);
+            clientToServer.start();
+            serverToClient.start();
+            try {
+              socket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes()); // TODO: need another \n?
+            } catch (UnknownHostException e) {
+              socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes()); // need another \n?
+            }
+          } else {
+            //System.out.println(); // debug
+            clientSocket.getOutputStream().write(line.getBytes());
+          }
           return;
+        }
+
+        if (isConnect) {
+          continue;
         }
 
         if (clientSocket == null && currentHeaderLines.isEmpty()) {
@@ -59,17 +75,8 @@ public class RequestThread extends Thread {
           // Host line.
           if (clientSocket == null) {
             clientSocket = socketFromString(line.trim().substring(6).trim());
-            try {
-              ResponseThread newThread = new ResponseThread(clientSocket, socket);
-              newThread.start();
-              if (isConnect) {
-                socket.getOutputStream().write("HTTP/1.0 200 OK\r\n".getBytes()); // TODO: need another \n?
-              }
-            } catch (UnknownHostException e) {
-              if (isConnect) {
-                socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n".getBytes()); // need another \n?
-              }
-            }
+            ResponseThread newThread = new ResponseThread(clientSocket, socket);
+            newThread.start();
           }
           while (!currentHeaderLines.isEmpty()) {
             //System.out.print(currentHeaderLines.get(0)); // debug
@@ -82,16 +89,12 @@ public class RequestThread extends Thread {
         } else if (line.trim().toLowerCase().startsWith("connect")) {
           // Connect request
           isConnect = true;
-          /*
           try {
             clientSocket = socketFromString(line.split(" ")[1]);
-            ResponseThread newThread = new ResponseThread(clientSocket, socket);
-            newThread.start();
-            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n".getBytes()); // TODO: need another \n?
           } catch (UnknownHostException e) {
-            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n".getBytes()); // need another \n?
+            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes()); // need another \n?
+            return;
           }
-          */
           continue;
         }
 

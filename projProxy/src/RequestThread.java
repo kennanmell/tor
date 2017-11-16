@@ -137,9 +137,9 @@ public class RequestThread extends Thread {
         // get port number from request line if not found in host line
         URI hostURI = new URI(uri);
         iport = hostURI.getPort();
-        System.out.println(iport);
-        System.out.println(uri);
-        System.out.println(hostURI.getHost());
+        System.out.println("iport: " + iport);
+        System.out.println("uri: " + uri);
+        System.out.println("host: " + hostURI.getHost());
       } catch (URISyntaxException e) {
         System.out.println("Invalid URI on request line");
         iport = -1;
@@ -155,6 +155,7 @@ public class RequestThread extends Thread {
         iport = 80;
       }
     }
+    System.out.println("final iport: " + iport);
 
     Socket resultSocket = new Socket(ip, iport);
     resultSocket.setSoTimeout(ProxyMain.SO_TIMEOUT_MS);

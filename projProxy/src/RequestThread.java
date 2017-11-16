@@ -7,6 +7,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.net.URISyntaxException; 
+import java.net.URI;
 
 /** RequestThread sends one HTTP or HTTP connect request from the browser client to the
     server, starts a thread to send the response/connection, then terminates. The request
@@ -130,20 +132,40 @@ public class RequestThread extends Thread {
       @throws IOException If there is an error creating the socket. */
   private Socket socketFromString(String inetAddressString) throws IOException {
     String[] ipComponents = inetAddressString.split(":");
-
     String ip = ipComponents[0];
-    int iport;
+    // -1 for not found
+    int iport = -1;
+
+    // get port number from host line
     if (ipComponents.length == 2) {
       iport = Integer.parseInt(ipComponents[1]);
-    } else if (currentHeaderLines.get(0) == "") {
-      // TODO: fix check and find port in first line
-      iport = 80;
-    } else if (currentHeaderLines.get(0).split(" ")[1].toLowerCase().startsWith("https")) {
-      iport = 443;
-    } else {
-      // http, no port specified
-      iport = 80;
+    } 
+    
+    String uri = (currentHeaderLines.get(0).split("\\s+")[1]).trim();
+    if (iport == -1) {
+      try {
+        // get port number from request line if not found in host line
+        URI hostURI = new URI(uri);
+        iport = hostURI.getPort();
+        System.out.println("iport: " + iport);
+        System.out.println("uri: " + uri);
+        System.out.println("host: " + hostURI.getHost());
+      } catch (URISyntaxException e) {
+        System.out.println("Invalid URI on request line");
+        iport = -1;
+      }
     }
+
+    // port num not present in either host or request line, check request (http or https)
+    if (iport == -1) {
+      if (uri.toLowerCase().startsWith("https")) {
+        iport = 443;
+      } else {
+      // http, no port specified
+        iport = 80;
+      }
+    }
+    System.out.println("final iport: " + iport);
 
     Socket resultSocket = new Socket(ip, iport);
     resultSocket.setSoTimeout(ProxyMain.SO_TIMEOUT_MS);

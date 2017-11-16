@@ -44,7 +44,7 @@ public class RequestThread extends Thread {
         return;
       }
 
-      System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) + " >>> " + modifyHttpHeaderLine(line));
+      System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) + " - >>> " + modifyHttpHeaderLine(line));
 
       List<String> bufferedLines = new ArrayList<>();
       bufferedLines.add(line);

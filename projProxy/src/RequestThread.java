@@ -17,8 +17,10 @@ public class RequestThread extends Thread {
   /// The number of ms to wait for a read from a socket before giving up and closing the connection.
   public static final int SO_TIMEOUT_MS = 5000;
 
-  /// The socket for communication with the client.
+  /// The socket for communication with the browser client.
   private Socket clientSocket;
+  /// The socket for communication with the server.
+  private Socket serverSocket;
 
   /** Sole constructor.
       @param clientSocket The socket for communication with the browser (must not be null). */
@@ -44,7 +46,7 @@ public class RequestThread extends Thread {
 
       List<String> bufferedLines = new ArrayList<>();
       bufferedLines.add(line);
-      Socket serverSocket = getServerFromHttpHeader(reader, bufferedLines);
+      serverSocket = getServerFromHttpHeader(reader, bufferedLines);
 
       if (line.trim().toLowerCase().startsWith("connect")) {
         if (serverSocket == null) {
@@ -86,7 +88,7 @@ public class RequestThread extends Thread {
         if (serverSocket != null) {
           serverSocket.close();
         }
-      } catch (IOException e) {
+      } catch (IOException e2) {
         // no op
       }
       return;
@@ -166,15 +168,16 @@ public class RequestThread extends Thread {
       }
     }
 
+    Socket resultSocket = null;
     try {
-      Socket resultSocket = new Socket(ip, iport);
+      resultSocket = new Socket(ip, iport);
       resultSocket.setSoTimeout(SO_TIMEOUT_MS);
       return resultSocket;
     } catch (IOException e) {
       if (resultSocket != null) {
         try {
           resultSocket.close();
-        } catch (IOException e) {
+        } catch (IOException e2) {
           // no op
         }
       }

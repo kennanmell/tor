@@ -10,60 +10,64 @@ import java.util.List;
 import java.net.URISyntaxException; 
 import java.net.URI;
 
-/** RequestThread  */
+/** RequestThread sends one HTTP or HTTP connect request from the browser client to the
+    server, starts a thread to send the response/connection, then terminates. The request
+    will always be downgraded to HTTP/1.0 and Connection: close. */
 public class RequestThread extends Thread {
-  private Socket socket;
-  private List<String> currentHeaderLines;
+  /// The socket for communication with the client.
   private Socket clientSocket;
+  /// The socket for communication with the server.
+  private Socket serverSocket;
+  /// A buffer of HTTP header lines from the client to send to the server.
+  private List<String> currentHeaderLines;
 
-  public RequestThread(Socket socket) {
-    if (socket == null) {
-      throw new IllegalArgumentException();
-    }
-
-    this.socket = socket;
+  /** Sole constructor.
+      @param clientSocket The socket for communication with the browser (must not be null). */
+  public RequestThread(Socket clientSocket) {
+    this.clientSocket = clientSocket;
     this.currentHeaderLines = new ArrayList<>();
-    this.clientSocket = null;
+    this.serverSocket = null;
   }
 
   @Override
   public void run() {
-    StringBuilder line = new StringBuilder();
-    boolean isConnect = false;
-    boolean sentHeader = false;
-    int curr;
+    StringBuilder line = new StringBuilder(); // for reading a header line-by-line
+    int curr; // the current byte read from the browser
+    boolean sentHeader = false; // true only if the header has been sent (but not payload)
+    boolean isConnect = false; // true only if dealing with an HTTP connect request
     try {
-      while ((curr = socket.getInputStream().read()) != -1) {
+      while ((curr = clientSocket.getInputStream().read()) != -1) {
         if (sentHeader && !isConnect) {
-          clientSocket.getOutputStream().write(curr);
+          // Already sent header so just send the rest byte-by-byte.
+          serverSocket.getOutputStream().write(curr);
           continue;
         }
 
         line.append((char) curr);
         if (curr != (int) '\n') {
+          // Not at end of line yet.
           continue;
         }
 
         String lineString = line.toString();
         line = new StringBuilder();
+
         if (lineString.equals("\r\n") || lineString.equals("\n")) {
+          // End of header.
           if (isConnect) {
-            (new ConnectTunnelingThread(socket, clientSocket)).start();
-            (new ConnectTunnelingThread(clientSocket, socket)).start();
-            try {
-              socket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-            } catch (UnknownHostException e) {
-              socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
-            }
+            (new ConnectTunnelingThread(clientSocket, serverSocket)).start();
+            (new ConnectTunnelingThread(serverSocket, clientSocket)).start();
+            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
             return;
           } else {
 
-            clientSocket.getOutputStream().write(lineString.getBytes());
+            serverSocket.getOutputStream().write(lineString.getBytes());
             sentHeader = true;
           }
         }
 
         if (isConnect) {
+          // Don't send any part of the header if it's a connect request.
           continue;
         }
 
@@ -71,19 +75,19 @@ public class RequestThread extends Thread {
           lineString = lineString.replace("HTTP/1.1", "HTTP/1.0");
         }
 
-        if (clientSocket == null && currentHeaderLines.isEmpty()) {
+        if (serverSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
           System.out.print(">>> " + lineString);
         }
 
         if (lineString.trim().toLowerCase().startsWith("host")) {
           // Host line.
-          if (clientSocket == null) {
-            clientSocket = socketFromString(lineString.trim().substring(6).trim());
-            (new ResponseThread(clientSocket, socket)).start();
+          if (serverSocket == null) {
+            serverSocket = socketFromString(lineString.trim().substring(6).trim());
+            (new ResponseThread(clientSocket, serverSocket)).start();
           }
           while (!currentHeaderLines.isEmpty()) {
-            clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
+            serverSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (lineString.trim().equalsIgnoreCase("Connection: keep-alive")) {
           lineString = "Connection: close\r\n";
@@ -93,25 +97,26 @@ public class RequestThread extends Thread {
           // Connect request
           isConnect = true;
           try {
-            clientSocket = socketFromString(lineString.split(" ")[1]);
+            serverSocket = socketFromString(lineString.split(" ")[1]);
           } catch (UnknownHostException e) {
-            socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
+            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             return;
           }
           continue;
         }
 
-        if (clientSocket == null) {
+        // If connected to server, send the header line. Otherwise, buffer it.
+        if (serverSocket == null) {
           currentHeaderLines.add(lineString);
         } else {
-          clientSocket.getOutputStream().write(lineString.getBytes());
+          serverSocket.getOutputStream().write(lineString.getBytes());
         }
       }
     } catch (IOException e) {
       try {
-        socket.close();
-        if (clientSocket != null) {
-          clientSocket.close();
+        clientSocket.close();
+        if (serverSocket != null) {
+          serverSocket.close();
         }
       } catch (IOException e2) {
          // no op
@@ -120,6 +125,11 @@ public class RequestThread extends Thread {
     }
   }
 
+  /** Helper function that parses a String for an ip and port number and returns
+      a socket connected to that address with ProxyMain.SO_TIMEOUT_MS timeout.
+      @param inetAddressString The String to parse for an address (must not be null).
+      @return A socket bound to the port specified by the inetAddressString.
+      @throws IOException If there is an error creating the socket. */
   private Socket socketFromString(String inetAddressString) throws IOException {
     String[] ipComponents = inetAddressString.split(":");
     String ip = ipComponents[0];

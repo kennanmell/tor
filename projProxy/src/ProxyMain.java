@@ -18,12 +18,7 @@ public class ProxyMain {
       iport = Integer.parseInt(args[0]);
       serverSocket = new ServerSocket(iport);
     } catch (Exception e) {
-      if (iport == -1) {
-        System.out.println("usage: ./run <port-num>");
-        System.out.println("specified invalid port.");
-      } else {
-        System.out.println("port unavailable: " + iport);
-      }
+      System.out.println(iport == -1 ? "invalid port" : "port unavailable");
       return;
     }
 

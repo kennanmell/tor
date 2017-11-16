@@ -11,8 +11,9 @@ import java.net.URISyntaxException;
 import java.net.URI;
 
 /** RequestThread sends one HTTP or HTTP connect request from the browser client to the
-    server, starts a thread to send the response/connection, then terminates. The request
-    will always be downgraded to HTTP/1.0 and Connection: close. */
+    server, then sends the response from the server to the browser. The request
+    will always be downgraded to HTTP/1.0 and Connection: close. If the request is
+    for connect, it starts two threads to relay the data in both directions. */
 public class RequestThread extends Thread {
   /// The number of ms to wait for a read from a socket before giving up and closing the connection.
   public static final int SO_TIMEOUT_MS = 5000;
@@ -79,8 +80,8 @@ public class RequestThread extends Thread {
               modifyHttpHeaderLine(bufferedLines.remove(0)).getBytes());
         }
 
-        handleHttpMessage(reader, clientSocket, serverSocket);
-        handleHttpMessage(reader, serverSocket, clientSocket);
+        handleHttpMessage(clientSocket, serverSocket);
+        handleHttpMessage(serverSocket, clientSocket);
       }
     } catch (IOException e) {
       try {
@@ -95,8 +96,9 @@ public class RequestThread extends Thread {
     }
   }
 
-  private void handleHttpMessage(BufferedHttpReader reader, Socket readSocket, Socket writeSocket)
-                                 throws IOException {
+  /** Handles an HTTP header and body sent from readSocket to writeSocket. */
+  private void handleHttpMessage(Socket readSocket, Socket writeSocket) throws IOException {
+    BufferedHttpReader reader = new BufferedHttpReader(readSocket.getInputStream());
     String line;
     while ((line = reader.readLine()) != null) {
       writeSocket.getOutputStream().write(modifyHttpHeaderLine(line).getBytes());
@@ -108,6 +110,9 @@ public class RequestThread extends Thread {
     (new BodyRelayThread(readSocket, writeSocket)).run();
   }
 
+  /** Parses an HTTP header line to downgrade to HTTP/1.0 and Connection: close.
+      @param line The line to modify.
+      @return The modified line. */
   private String modifyHttpHeaderLine(String line) {
     line = line.replace("HTTP/1.1", "HTTP/1.0");
     if (line.trim().equalsIgnoreCase("Connection: keep-alive")) {
@@ -118,8 +123,10 @@ public class RequestThread extends Thread {
     return line;
   }
 
-  private Socket getServerFromHttpHeader(BufferedHttpReader reader, List<String> bufferedLines)
-                                         throws IOException {
+  /** Helper that returns a Socket for communication with a server specified by the host line or
+      the first line in bufferedLines. Adds header lines it reads while looking for the host line
+      to bufferedLines. Returns null if there is an error or the server is invalid. */
+  private Socket getServerFromHttpHeader(BufferedHttpReader reader, List<String> bufferedLines) {
     String line;
     while ((line = reader.readLine()) != null) {
       bufferedLines.add(line);

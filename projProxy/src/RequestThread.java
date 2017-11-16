@@ -162,7 +162,6 @@ public class RequestThread extends Thread {
         iport = 80;
       }
     }
-    System.out.println("final iport: " + iport);
 
     Socket resultSocket = new Socket(ip, iport);
     resultSocket.setSoTimeout(ProxyMain.SO_TIMEOUT_MS);

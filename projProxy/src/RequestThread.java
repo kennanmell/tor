@@ -147,9 +147,6 @@ public class RequestThread extends Thread {
         // get port number from request line if not found in host line
         URI hostURI = new URI(uri);
         iport = hostURI.getPort();
-        System.out.println("iport: " + iport);
-        System.out.println("uri: " + uri);
-        System.out.println("host: " + hostURI.getHost());
       } catch (URISyntaxException e) {
         System.out.println("Invalid URI on request line");
         iport = -1;

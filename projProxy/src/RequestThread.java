@@ -138,6 +138,8 @@ public class RequestThread extends Thread {
         URI hostURI = new URI(uri);
         iport = hostURI.getPort();
         System.out.println(iport);
+        System.out.println(uri);
+        System.out.println(hostURI.getHost());
       } catch (URISyntaxException e) {
         System.out.println("Invalid URI on request line");
         iport = -1;

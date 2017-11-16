@@ -10,7 +10,7 @@ import java.util.List;
 import java.net.URISyntaxException; 
 import java.net.URI;
 
-/** RequestThread  */
+/** RequestThread   */
 public class RequestThread extends Thread {
   private Socket socket;
   private List<String> currentHeaderLines;

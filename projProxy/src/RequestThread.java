@@ -10,7 +10,6 @@ import java.util.List;
 
 public class RequestThread extends Thread {
   private Socket socket;
-  private BufferedReader inBuffer;
   private List<String> currentHeaderLines;
   private Socket clientSocket;
 
@@ -20,12 +19,6 @@ public class RequestThread extends Thread {
     }
 
     this.socket = socket;
-    try {
-      this.inBuffer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-    } catch (IOException e) {
-      System.out.println("fatal error");
-    }
-
     this.currentHeaderLines = new ArrayList<>();
     this.clientSocket = null;
   }
@@ -61,7 +54,7 @@ public class RequestThread extends Thread {
             }
             return;
           } else {
-            System.out.print(line);
+
             clientSocket.getOutputStream().write(lineString.getBytes());
             sentHeader = true;
           }
@@ -77,7 +70,7 @@ public class RequestThread extends Thread {
 
         if (clientSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
-          System.out.print(">>> " + line);
+          System.out.print(">>> " + lineString);
         }
 
         if (lineString.trim().toLowerCase().startsWith("host")) {
@@ -87,7 +80,6 @@ public class RequestThread extends Thread {
             (new ResponseThread(clientSocket, socket)).start();
           }
           while (!currentHeaderLines.isEmpty()) {
-            System.out.print(currentHeaderLines.get(0));
             clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
           }
         } else if (lineString.trim().equalsIgnoreCase("Connection: keep-alive")) {
@@ -109,12 +101,18 @@ public class RequestThread extends Thread {
         if (clientSocket == null) {
           currentHeaderLines.add(lineString);
         } else {
-          System.out.print(lineString);
           clientSocket.getOutputStream().write(lineString.getBytes());
         }
       }
     } catch (IOException e) {
-      System.out.println("fatal error");
+      try {
+        socket.close();
+        if (clientSocket != null) {
+          clientSocket.close();
+        }
+      } catch (IOException e2) {
+         // no op
+      }
       return;
     }
   }

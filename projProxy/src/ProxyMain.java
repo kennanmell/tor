@@ -23,11 +23,8 @@ public class ProxyMain {
     ServerSocket serverSocket;
     try {
       serverSocket = new ServerSocket(iport);
-    } catch (IOException e) {
-      System.out.println("fatal error");
-      return;
-    } catch (IllegalArgumentException e) {
-      System.out.println("Port value out of range.");
+    } catch (Exception e) {
+      System.out.println("Unable to bind to server port.");
       return;
     }
 
@@ -41,6 +38,7 @@ public class ProxyMain {
         newSocket.setSoTimeout(SO_TIMEOUT_MS);
         (new RequestThread(newSocket)).start();
       } catch (IOException e) {
+        e.printStackTrace();
         System.out.println("fatal error");
         return;
       }

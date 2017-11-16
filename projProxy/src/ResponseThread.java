@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class ResponseThread extends Thread {
   private Socket readSocket;
@@ -34,7 +35,6 @@ public class ResponseThread extends Thread {
             } else if (lineString.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
               line = new StringBuilder("Proxy-connection: close\r\n");
             }
-            System.out.print(line);
             writeSocket.getOutputStream().write(line.toString().getBytes());
             if (lineString.equals("\n") || lineString.equals("\r\n")) {
               sentHeader = true;
@@ -44,6 +44,12 @@ public class ResponseThread extends Thread {
         }
       }
     } catch (IOException e) {
+      try {
+        readSocket.close();
+        writeSocket.close();
+      } catch (IOException e2) {
+        // no op
+      }
       return;
     }
   }

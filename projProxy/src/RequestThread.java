@@ -142,7 +142,7 @@ public class RequestThread extends Thread {
     } 
     
     String uri = (currentHeaderLines.get(0).split("\\s+")[1]).trim();
-    /*if (iport == -1) {
+    if (iport == -1) {
       try {
         // get port number from request line if not found in host line
         URI hostURI = new URI(uri);
@@ -154,7 +154,7 @@ public class RequestThread extends Thread {
         System.out.println("Invalid URI on request line");
         iport = -1;
       }
-    }*/
+    }
 
     // port num not present in either host or request line, check request (http or https)
     if (iport == -1) {

@@ -20,6 +20,12 @@ public class RequestThread extends Thread {
   private Socket serverSocket;
   /// A buffer of HTTP header lines from the client to send to the server.
   private List<String> currentHeaderLines;
+  // port number from request line, -1 if not found
+  private int headerPort; 
+  // port number from host line, -1 if not found
+  private int hostPort;
+  // starts with https or not
+  private boolean startsWithHTTPS;
 
   /** Sole constructor.
       @param clientSocket The socket for communication with the browser (must not be null). */
@@ -27,6 +33,9 @@ public class RequestThread extends Thread {
     this.clientSocket = clientSocket;
     this.currentHeaderLines = new ArrayList<>();
     this.serverSocket = null;
+    this.headerPort = -1;
+    this.hostPort = -1;
+    this.startsWithHTTPS = false;
   }
 
   @Override
@@ -35,6 +44,8 @@ public class RequestThread extends Thread {
     int curr; // the current byte read from the browser
     boolean sentHeader = false; // true only if the header has been sent (but not payload)
     boolean isConnect = false; // true only if dealing with an HTTP connect request
+    boolean first = true;
+    String requestName;
     try {
       while ((curr = clientSocket.getInputStream().read()) != -1) {
         if (sentHeader && !isConnect) {
@@ -52,15 +63,50 @@ public class RequestThread extends Thread {
         String lineString = line.toString();
         line = new StringBuilder();
 
+        // get port from request line, -1 if not found
+        if (first) {
+          String urlString = lineString.split("\\s+")[1].trim();
+          if (urlString.toLowerCase().startsWith("https")) {
+            startsWithHTTPS = true;
+          }
+          try {
+            URI hostURI = new URI(uriString);
+            headerPort = hostURI.getPort();
+            requestName = hostURI.getHost();
+          } catch (URISyntaxException e) {
+            System.out.println("Invalid URI on request line");
+            headerPort = -1;
+            requestName = null;
+          }
+          first = false;
+        }
+
         if (lineString.equals("\r\n") || lineString.equals("\n")) {
           // End of header.
           if (isConnect) {
-            (new ConnectTunnelingThread(clientSocket, serverSocket)).start();
-            (new ConnectTunnelingThread(serverSocket, clientSocket)).start();
-            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-            return;
-          } else {
+            int port = headerPort;
 
+            // port num not present in either host or request line, check request (http or https)
+            if (port == -1) {
+              if (startsWithHTTPS) {
+                port = 443;
+              } else {
+            // http, no port specified
+                port = 80;
+              }
+            }
+
+            try {
+              serverSocket = new Socket(requestName, port);
+              (new ConnectTunnelingThread(clientSocket, serverSocket)).start();
+              (new ConnectTunnelingThread(serverSocket, clientSocket)).start();
+              clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+              return;
+            } catch (UnknownHostException e) {
+              clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
+              return;
+            }
+          } else {
             serverSocket.getOutputStream().write(lineString.getBytes());
             sentHeader = true;
           }
@@ -82,12 +128,48 @@ public class RequestThread extends Thread {
 
         if (lineString.trim().toLowerCase().startsWith("host")) {
           // Host line.
-          if (serverSocket == null) {
-            serverSocket = socketFromString(lineString.trim().substring(6).trim());
-            (new ResponseThread(clientSocket, serverSocket)).start();
+          String[] ipComponents = lineString.trim().substring(6).trim().split(":");
+          if (ipComponents.length == 2) {
+            hostPort = Integer.parseInt(ipComponents[1]);
           }
-          while (!currentHeaderLines.isEmpty()) {
-            serverSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
+
+          int port = hostPort;
+
+          if (port == -1) {
+            port = headerPort;
+          }
+
+          // port num not present in either host or request line, check request (http or https)
+          if (port == -1) {
+            if (startsWithHTTPS) {
+              port = 443;
+            } else {
+            // http, no port specified
+              port = 80;
+            }
+          }
+
+          if (isConnect) {
+            try {
+              serverSocket = new Socket(ipComponents[0], port);
+              (new ConnectTunnelingThread(clientSocket, serverSocket)).start();
+              (new ConnectTunnelingThread(serverSocket, clientSocket)).start();
+              clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+              return;
+            } catch (UnknownHostException e) {
+              clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
+              return;
+            }
+          } else {
+            if (serverSocket == null) {
+              serverSocket = new Socket(ipComponents[0], port);
+              serverSocket.setSoTimeout(ProxyMain.SO_TIMEOUT_MS);
+              (new ResponseThread(clientSocket, serverSocket)).start();
+            }
+
+            while (!currentHeaderLines.isEmpty()) {
+              serverSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
+            }
           }
         } else if (lineString.trim().equalsIgnoreCase("Connection: keep-alive")) {
           lineString = "Connection: close\r\n";

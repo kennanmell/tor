@@ -70,7 +70,7 @@ public class RequestThread extends Thread {
             startsWithHTTPS = true;
           }
           try {
-            URI hostURI = new URI(uriString);
+            URI hostURI = new URI(urlString);
             headerPort = hostURI.getPort();
             requestName = hostURI.getHost();
           } catch (URISyntaxException e) {

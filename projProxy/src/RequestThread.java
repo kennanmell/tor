@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.net.URISyntaxException; 
 import java.net.URI;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 /** RequestThread sends one HTTP or HTTP connect request from the browser client to the
     server, starts a thread to send the response/connection, then terminates. The request
@@ -127,7 +129,7 @@ public class RequestThread extends Thread {
 
         if (serverSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
-          System.out.print(">>> " + lineString);
+          System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) + " >>> " + lineString);
         }
 
         if (lineString.trim().toLowerCase().startsWith("host")) {

@@ -3,9 +3,9 @@ package src;
 import java.io.IOException;
 import java.net.Socket;
 
-/** ConnectTunnelingThread reads data byte-by-byte from from a TCP socket and writes that data
+/** BodyRelayThread reads data byte-by-byte from from a TCP socket and writes that data
     to another TCP socket. Intended to be used for HTTP connect tunneling. */
-public class ConnectTunnelingThread extends Thread {
+public class BodyRelayThread extends Thread {
   /// The socket connected to the browser to write data to.
   private Socket clientSocket;
   /// The socket connected to the server to read data from.
@@ -14,7 +14,7 @@ public class ConnectTunnelingThread extends Thread {
   /** Sole constructor.
       @param serverSocket The TCP socket to read data from (must not be null).
       @param clientSocket The TCP socket to write data to (must not be null). */
-  public ConnectTunnelingThread(Socket clientSocket, Socket serverSocket) {
+  public BodyRelayThread(Socket clientSocket, Socket serverSocket) {
     this.clientSocket = clientSocket;
     this.serverSocket = serverSocket;
   }

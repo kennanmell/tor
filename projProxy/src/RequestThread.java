@@ -10,127 +10,113 @@ import java.util.List;
 import java.net.URISyntaxException; 
 import java.net.URI;
 
-/** RequestThread  */
+/** RequestThread sends one HTTP or HTTP connect request from the browser client to the
+    server, starts a thread to send the response/connection, then terminates. The request
+    will always be downgraded to HTTP/1.0 and Connection: close. */
 public class RequestThread extends Thread {
-  private Socket socket;
-  private List<String> currentHeaderLines;
+  /// The socket for communication with the client.
   private Socket clientSocket;
-  private String firstLine;
+  /// The socket for communication with the server.
+  private Socket serverSocket;
+  /// A buffer of HTTP header lines from the client to send to the server.
+  private List<String> currentHeaderLines;
 
-  public RequestThread(Socket socket) {
-    if (socket == null) {
-      throw new IllegalArgumentException();
-    }
-
-    this.socket = socket;
+  /** Sole constructor.
+      @param clientSocket The socket for communication with the browser (must not be null). */
+  public RequestThread(Socket clientSocket) {
+    this.clientSocket = clientSocket;
     this.currentHeaderLines = new ArrayList<>();
-    this.clientSocket = null;
+    this.serverSocket = null;
   }
 
   @Override
   public void run() {
-    StringBuilder line = new StringBuilder();
-    boolean isConnect = false;
-    boolean sentHeader = false;
-    int curr;
+    StringBuilder line = new StringBuilder(); // for reading a header line-by-line
+    int curr; // the current byte read from the browser
+    boolean sentHeader = false; // true only if the header has been sent (but not payload)
+    boolean isConnect = false; // true only if dealing with an HTTP connect request
     try {
-      while ((curr = socket.getInputStream().read()) != -1) {
-        // write all bytes without buffering if we've sent the header 
+      while ((curr = clientSocket.getInputStream().read()) != -1) {
         if (sentHeader && !isConnect) {
-          clientSocket.getOutputStream().write(curr);
+          // Already sent header so just send the rest byte-by-byte.
+          serverSocket.getOutputStream().write(curr);
           continue;
         }
 
-        // build up line
         line.append((char) curr);
         if (curr != (int) '\n') {
+          // Not at end of line yet.
           continue;
         }
 
         String lineString = line.toString();
         line = new StringBuilder();
 
+        if (lineString.equals("\r\n") || lineString.equals("\n")) {
+          // End of header.
+          if (isConnect) {
+            (new ConnectTunnelingThread(clientSocket, serverSocket)).start();
+            (new ConnectTunnelingThread(serverSocket, clientSocket)).start();
+            clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+            return;
+          } else {
+
+            serverSocket.getOutputStream().write(lineString.getBytes());
+            sentHeader = true;
+          }
+        }
+
+        if (isConnect) {
+          // Don't send any part of the header if it's a connect request.
+          continue;
+        }
+
         if (lineString.contains("HTTP/1.1")) {
           lineString = lineString.replace("HTTP/1.1", "HTTP/1.0");
+        }
+
+        if (serverSocket == null && currentHeaderLines.isEmpty()) {
+          // Print the first line of the request.
+          System.out.print(">>> " + lineString);
+        }
+
+        if (lineString.trim().toLowerCase().startsWith("host")) {
+          // Host line.
+          if (serverSocket == null) {
+            serverSocket = socketFromString(lineString.trim().substring(6).trim());
+            (new ResponseThread(clientSocket, serverSocket)).start();
+          }
+          while (!currentHeaderLines.isEmpty()) {
+            serverSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
+          }
         } else if (lineString.trim().equalsIgnoreCase("Connection: keep-alive")) {
           lineString = "Connection: close\r\n";
         } else if (lineString.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
           lineString = "Proxy-connection: close\r\n";
-        } 
-        
-        // print first line if we haven't set connect
-        if (!isConnect && clientSocket == null && currentHeaderLines.isEmpty()) {
-          // Print the first line of the request, store first line
-          firstLine = lineString.trim();
-          System.out.print(">>> " + lineString);
-        }
-
-        // this is a connect request, store state and first line
-        if(lineString.trim().toLowerCase().startsWith("connect")) {          
+        } else if (lineString.trim().toLowerCase().startsWith("connect")) {
+          // Connect request
           isConnect = true;
-          continue;
-        }
-        
-        // do not buffer header if we are on a CONNECT request.
-        // just establish tcp connection, send OK or Bad Gateway, and start tunneling threads.
-        if (isConnect) {
-          if (lineString.equals("\r\n") || lineString.equals("\n")) {
-            if (clientSocket == null) {
-              clientSocket = socketFromRequestString((firstLine.split("\\s+")[1]).trim());
-            }
-          } else if (lineString.trim().toLowerCase().startsWith("host")) {
-            if (clientSocket == null) {
-              clientSocket = socketFromHostString(lineString.trim().substring(6).trim());
-            }
-          } else {
-            // go until we reach end of request or host header
-            continue;
-          }
-          if (clientSocket == null) {
-            System.out.println("error: failed to connect to server for CONNECT request.");
+          try {
+            serverSocket = socketFromString(lineString.split(" ")[1]);
+          } catch (UnknownHostException e) {
+            clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             return;
           }
-          (new ConnectTunnelingThread(socket, clientSocket)).start();
-          (new ConnectTunnelingThread(clientSocket, socket)).start();
-          try {
-            socket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-          } catch (UnknownHostException e) {
-            socket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
-          }
-          return;
-        } 
-        
-        // handle non-connect request
-        if(!isConnect) {          
-          // add header to buffer
-          currentHeaderLines.add(lineString);
+          continue;
+        }
 
-          // reached end of header or host line
-          if ((lineString.equals("\r\n") || 
-              lineString.equals("\n") || 
-              lineString.trim().toLowerCase().startsWith("host")) && clientSocket == null) {
-            if (lineString.equals("\r\n") || lineString.equals("\n")) {
-              clientSocket = socketFromRequestString((firstLine.split("\\s+")[1]).trim());
-            } else {
-              // we are on the host header
-              clientSocket = socketFromHostString(lineString.trim().substring(6).trim());
-            }
-            (new ResponseThread(clientSocket, socket)).start();
-            // write remaining header
-            while (!currentHeaderLines.isEmpty()) {
-              clientSocket.getOutputStream().write(currentHeaderLines.remove(0).getBytes());
-            }
-            // flag for signalling we will now write all remaining bytes byte by byte without buffering
-            sentHeader = true;
-            continue;
-          }
+        // If connected to server, send the header line. Otherwise, buffer it.
+        if (serverSocket == null) {
+          currentHeaderLines.add(lineString);
+        } else {
+          serverSocket.getOutputStream().write(lineString.getBytes());
         }
       }
     } catch (IOException e) {
       try {
-        socket.close();
-        if (clientSocket != null) {
-          clientSocket.close();
+        clientSocket.close();
+        if (serverSocket != null) {
+          serverSocket.close();
         }
       } catch (IOException e2) {
          // no op
@@ -139,7 +125,12 @@ public class RequestThread extends Thread {
     }
   }
 
-  private Socket socketFromHostString(String inetAddressString) throws IOException {
+  /** Helper function that parses a String for an ip and port number and returns
+      a socket connected to that address with ProxyMain.SO_TIMEOUT_MS timeout.
+      @param inetAddressString The String to parse for an address (must not be null).
+      @return A socket bound to the port specified by the inetAddressString.
+      @throws IOException If there is an error creating the socket. */
+  private Socket socketFromString(String inetAddressString) throws IOException {
     String[] ipComponents = inetAddressString.split(":");
     String ip = ipComponents[0];
     // -1 for not found
@@ -150,8 +141,7 @@ public class RequestThread extends Thread {
       iport = Integer.parseInt(ipComponents[1]);
     } 
     
-    String uri = (firstLine.split("\\s+")[1]).trim();
-
+    String uri = (currentHeaderLines.get(0).split("\\s+")[1]).trim();
     if (iport == -1) {
       try {
         // get port number from request line if not found in host line
@@ -172,38 +162,7 @@ public class RequestThread extends Thread {
         iport = 80;
       }
     }
-
-    Socket resultSocket = new Socket(ip, iport);
-    resultSocket.setSoTimeout(ProxyMain.SO_TIMEOUT_MS);
-    return resultSocket;
-  }
-
-  private Socket socketFromRequestString(String inetAddressString) throws IOException {
-    String ip = null;
-    // -1 for not found
-    int iport = -1;
-
-    if (iport == -1) {
-      try {
-        // get port number from request line if not found in host line
-        URI hostURI = new URI(inetAddressString);
-        iport = hostURI.getPort();
-        ip = hostURI.getHost();
-      } catch (URISyntaxException e) {
-        System.out.println("Invalid URI on request line");
-        return null;
-      }
-    }
-
-    // port num not present in either host or request line, check request (http or https)
-    if (iport == -1) {
-      if (inetAddressString.toLowerCase().startsWith("https")) {
-        iport = 443;
-      } else {
-      // http, no port specified
-        iport = 80;
-      }
-    }
+    System.out.println("final iport: " + iport);
 
     Socket resultSocket = new Socket(ip, iport);
     resultSocket.setSoTimeout(ProxyMain.SO_TIMEOUT_MS);

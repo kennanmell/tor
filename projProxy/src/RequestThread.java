@@ -178,12 +178,12 @@ public class RequestThread extends Thread {
         } else if (lineString.trim().toLowerCase().startsWith("connect")) {
           // Connect request
           isConnect = true;
-          try {
+          /*try {
             serverSocket = socketFromString(lineString.split(" ")[1]);
           } catch (UnknownHostException e) {
             clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
             return;
-          }
+          }*/
           continue;
         }
 

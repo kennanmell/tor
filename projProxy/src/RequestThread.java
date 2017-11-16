@@ -131,10 +131,10 @@ public class RequestThread extends Thread {
       iport = Integer.parseInt(ipComponents[1]);
     } 
     
+    String uri = (currentHeaderLines.get(0).split("\\s+")[1]).trim();
     if (iport == -1) {
       try {
         // get port number from request line if not found in host line
-        String uri = (currentHeaderLines.get(0).split("\\s+")[1]).trim();
         URI hostURI = new URI(uri);
         iport = hostURI.getPort();
       } catch (URISyntaxException e) {

@@ -234,7 +234,6 @@ public class RequestThread extends Thread {
         URI hostURI = new URI(uri);
         iport = hostURI.getPort();
       } catch (URISyntaxException e) {
-        System.out.println("Invalid URI on request line");
         iport = -1;
       }
     }

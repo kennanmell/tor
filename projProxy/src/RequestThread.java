@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+/** RequestThread  */
 public class RequestThread extends Thread {
   private Socket socket;
   private List<String> currentHeaderLines;

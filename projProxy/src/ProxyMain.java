@@ -3,7 +3,10 @@ package src;
 import java.io.*;
 import java.net.*;
 
+/** ProxyMain runs a simple HTTP proxy capable of handling HTTP requests and HTTP connect
+    tunneling. Takes a port number as a command line argument. */
 public class ProxyMain {
+  /// The number of ms to wait for a read from a socket before giving up and closing the connection.
   public static final int SO_TIMEOUT_MS = 5000;
 
   public static void main(String[] args) {
@@ -12,7 +15,7 @@ public class ProxyMain {
       return;
     }
 
-    int iport;
+    int iport; // port on localhost to run the proxy on
     try {
       iport = Integer.parseInt(args[0]);
     } catch (NumberFormatException e) {
@@ -30,8 +33,10 @@ public class ProxyMain {
 
     System.out.println("Proxy listening on 0.0.0.0:" + iport);
 
+    // Listen for eof on stdin.
     (new EofListenerThread()).start();
 
+    // Accept new TCP connections until proxy is closed.
     while (true) {
       try {
         Socket newSocket = serverSocket.accept();

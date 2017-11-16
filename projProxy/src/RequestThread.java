@@ -131,9 +131,7 @@ public class RequestThread extends Thread {
 
         if (serverSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
-          if (isConnect) {
-            System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) + " >>> " + lineString);
-          }
+          System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) + " >>> " + lineString);
         }
 
         if (lineString.trim().toLowerCase().startsWith("host")) {

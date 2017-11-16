@@ -127,7 +127,9 @@ public class RequestThread extends Thread {
 
         if (serverSocket == null && currentHeaderLines.isEmpty()) {
           // Print the first line of the request.
-          System.out.print(">>> " + lineString);
+          if (lineString.conatins("CONNECT")) {
+            System.out.print(">>> " + lineString);
+          }
         }
 
         if (lineString.trim().toLowerCase().startsWith("host")) {

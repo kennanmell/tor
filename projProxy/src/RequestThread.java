@@ -45,7 +45,7 @@ public class RequestThread extends Thread {
     boolean sentHeader = false; // true only if the header has been sent (but not payload)
     boolean isConnect = false; // true only if dealing with an HTTP connect request
     boolean first = true;
-    String requestName;
+    String requestName = null;
     try {
       while ((curr = clientSocket.getInputStream().read()) != -1) {
         if (sentHeader && !isConnect) {
@@ -97,6 +97,10 @@ public class RequestThread extends Thread {
             }
 
             try {
+              if (requestName == null) {
+                System.out.println("Host name not intialized, error.");
+                return;
+              }
               serverSocket = new Socket(requestName, port);
               (new ConnectTunnelingThread(clientSocket, serverSocket)).start();
               (new ConnectTunnelingThread(serverSocket, clientSocket)).start();

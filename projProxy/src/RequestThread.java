@@ -49,6 +49,14 @@ public class RequestThread extends Thread {
 
         String lineString = line.toString();
         line = new StringBuilder();
+
+        if (lineString.contains("HTTP/1.1")) {
+          lineString = lineString.replace("HTTP/1.1", "HTTP/1.0");
+        } else if (lineString.trim().equalsIgnoreCase("Connection: keep-alive")) {
+          lineString = "Connection: close\r\n";
+        } else if (lineString.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
+          lineString = "Proxy-connection: close\r\n";
+        } 
         
         // print first line if we haven't set connect
         if (!isConnect && clientSocket == null && currentHeaderLines.isEmpty()) {
@@ -93,16 +101,7 @@ public class RequestThread extends Thread {
         } 
         
         // handle non-connect request
-        if(!isConnect) {
-          // HTTP formatting
-          if (lineString.contains("HTTP/1.1")) {
-            lineString = lineString.replace("HTTP/1.1", "HTTP/1.0");
-          } else if (lineString.trim().equalsIgnoreCase("Connection: keep-alive")) {
-            lineString = "Connection: close\r\n";
-          } else if (lineString.trim().equalsIgnoreCase("Proxy-connection: keep-alive")) {
-            lineString = "Proxy-connection: close\r\n";
-          } 
-          
+        if(!isConnect) {          
           // add header to buffer
           currentHeaderLines.add(lineString);
 

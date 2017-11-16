@@ -27,7 +27,7 @@ public class ProxyMain {
       return;
     }
 
-    System.out.println("Proxy listening on 0.0.0.0:" + iport);
+    System.out.println("Proxy listening on port " + iport);
 
     // Listen for eof on stdin.
     (new EofListenerThread()).start();

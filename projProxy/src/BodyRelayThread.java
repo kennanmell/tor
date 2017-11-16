@@ -7,29 +7,29 @@ import java.net.Socket;
     to another TCP socket. Intended to be used for HTTP connect tunneling. */
 public class BodyRelayThread extends Thread {
   /// The socket connected to the browser to write data to.
-  private Socket clientSocket;
+  private Socket writeSocket;
   /// The socket connected to the server to read data from.
-  private Socket serverSocket;
+  private Socket readSocket;
 
   /** Sole constructor.
-      @param serverSocket The TCP socket to read data from (must not be null).
-      @param clientSocket The TCP socket to write data to (must not be null). */
-  public BodyRelayThread(Socket clientSocket, Socket serverSocket) {
-    this.clientSocket = clientSocket;
-    this.serverSocket = serverSocket;
+      @param readSocket The TCP socket to read data from (must not be null).
+      @param writeSocket The TCP socket to write data to (must not be null). */
+  public BodyRelayThread(Socket writeSocket, Socket readSocket) {
+    this.writeSocket = writeSocket;
+    this.readSocket = readSocket;
   }
 
   @Override
   public void run() {
     try {
       int curr;
-      while ((curr = serverSocket.getInputStream().read()) != -1) {
-          clientSocket.getOutputStream().write(curr);
+      while ((curr = readSocket.getInputStream().read()) != -1) {
+          writeSocket.getOutputStream().write(curr);
       }
     } catch (IOException e) {
       try {
-        serverSocket.close();
-        clientSocket.close();
+        readSocket.close();
+        writeSocket.close();
       } catch (IOException e2) {
         // no op
       }

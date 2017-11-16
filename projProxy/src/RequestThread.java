@@ -67,7 +67,7 @@ public class RequestThread extends Thread {
 
         // get port from request line, -1 if not found
         if (first) {
-          if (urlString.toLowerCase.startsWith("connect")) {
+          if (lineString.toLowerCase().startsWith("connect")) {
             isConnect = true;
           }
           String urlString = lineString.split("\\s+")[1].trim();

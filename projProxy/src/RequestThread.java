@@ -76,7 +76,6 @@ public class RequestThread extends Thread {
             headerPort = hostURI.getPort();
             requestName = hostURI.getHost();
           } catch (URISyntaxException e) {
-            System.out.println("Invalid URI on request line");
             headerPort = -1;
             requestName = null;
           }

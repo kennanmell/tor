@@ -3,17 +3,17 @@ package src;
 import java.io.InputStream;
 import java.io.IOException;
 
-/** BufferedHttpReader wraps an InputStream for the following benefits:
+/** BufferedStreamReader wraps an InputStream for the following benefits:
     - Capable of switching between line-based and byte-based processing.
     - Doesn't trim line termination characters when doing line-based processing.
     - Returns null or -1 when there's an error reading instead of throwing IOException. */
-public class BufferedHttpReader {
+public class BufferedStreamReader {
   /// The InputStream to read from.
   private InputStream inputStream;
 
   /** Sole constructor.
       @param inputStream The InputStream to read from. */
-  public BufferedHttpReader(InputStream inputStream) {
+  public BufferedStreamReader(InputStream inputStream) {
     this.inputStream = inputStream;
   }
 

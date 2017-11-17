@@ -1,7 +1,9 @@
 package src;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /** ProxyMain runs a simple HTTP proxy capable of handling HTTP requests and HTTP connect
     tunneling. Takes a port number as a command line argument. */
@@ -30,7 +32,13 @@ public class ProxyMain {
     // Accept new TCP connections until proxy is closed.
     while (true) {
       try {
-        (new RequestThread(serverSocket.accept())).start();
+        (new HttpRequestThread(serverSocket.accept(), new HttpRequestThread.HttpRequestListener() {
+          @Override
+          public void onRequestReceived(String firstHeaderLine) {
+            System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) +
+                             " - >>> " + firstHeaderLine);
+          }
+        })).start();
       } catch (IOException e) {
         continue;
       }

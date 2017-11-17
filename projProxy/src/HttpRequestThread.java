@@ -1,22 +1,22 @@
 package src;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.net.URISyntaxException;
-import java.net.URI;
-import java.util.Date;
-import java.text.SimpleDateFormat;
 
-/** RequestThread sends one HTTP or HTTP connect request from the browser client to the
+/** HttpRequestThread sends one HTTP or HTTP connect request from the browser client to the
     server, then sends the response from the server to the browser. The request
     will always be downgraded to HTTP/1.0 and Connection: close. If the request is
     for connect, it starts two threads to relay the data in both directions. */
-public class RequestThread extends Thread {
+public class HttpRequestThread extends Thread {
+  /** Callbacks for events in a HttpRequestThread. */
+  public interface HttpRequestListener {
+    /** Called when a request is received from the client socket.
+        @param firstHeaderLine The first line of the request header. */
+    public void onRequestReceived(String firstHeaderLine);
+  }
   /// The number of ms to wait for a read from a socket before giving up and closing the connection.
   public static final int SO_TIMEOUT_MS = 5000;
 
@@ -24,28 +24,35 @@ public class RequestThread extends Thread {
   private Socket clientSocket;
   /// The socket for communication with the server.
   private Socket serverSocket;
+  /// An HttpRequestListener that is called when events occur in this thread.
+  private HttpRequestListener listener;
 
   /** Sole constructor.
-      @param clientSocket The socket for communication with the browser (must not be null). */
-  public RequestThread(Socket clientSocket) {
+      @param clientSocket The socket for communication with the browser (must not be null).
+      @param listener The HttpRequestListener to call when events occur in this thread. */
+  public HttpRequestThread(Socket clientSocket, HttpRequestListener listener) {
     try {
       clientSocket.setSoTimeout(SO_TIMEOUT_MS);
     } catch (IOException e) {
       // no op
     }
     this.clientSocket = clientSocket;
+    this.serverSocket = null;
+    this.listener = listener;
   }
 
   @Override
   public void run() {
     try {
-      BufferedHttpReader reader = new BufferedHttpReader(clientSocket.getInputStream());
+      BufferedStreamReader reader = new BufferedStreamReader(clientSocket.getInputStream());
       String line = reader.readLine();
       if (line == null) {
         return;
       }
 
-      System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) + " - >>> " + modifyHttpHeaderLine(line));
+      if (listener != null) {
+        listener.onRequestReceived(modifyHttpHeaderLine(line));
+      }
 
       List<String> bufferedLines = new ArrayList<>();
       bufferedLines.add(line);
@@ -69,8 +76,10 @@ public class RequestThread extends Thread {
         }
 
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-        (new BodyRelayThread(clientSocket, serverSocket)).start();
-        (new BodyRelayThread(serverSocket, clientSocket)).run();
+        clientSocket.setSoTimeout(0);
+        serverSocket.setSoTimeout(0);
+        (new RawDataRelayThread(clientSocket, serverSocket)).start();
+        (new RawDataRelayThread(serverSocket, clientSocket)).run();
       } else {
         if (serverSocket == null) {
           return;
@@ -100,7 +109,7 @@ public class RequestThread extends Thread {
 
   /** Handles an HTTP header and body sent from readSocket to writeSocket. */
   private void handleHttpMessage(Socket readSocket, Socket writeSocket) throws IOException {
-    BufferedHttpReader reader = new BufferedHttpReader(readSocket.getInputStream());
+    BufferedStreamReader reader = new BufferedStreamReader(readSocket.getInputStream());
     String line;
     while ((line = reader.readLine()) != null) {
       writeSocket.getOutputStream().write(modifyHttpHeaderLine(line).getBytes());
@@ -109,7 +118,7 @@ public class RequestThread extends Thread {
       }
     }
 
-    (new BodyRelayThread(readSocket, writeSocket)).run();
+    (new RawDataRelayThread(readSocket, writeSocket)).run();
   }
 
   /** Parses an HTTP header line to downgrade to HTTP/1.0 and Connection: close.
@@ -128,7 +137,7 @@ public class RequestThread extends Thread {
   /** Helper that returns a Socket for communication with a server specified by the host line or
       the first line in bufferedLines. Adds header lines it reads while looking for the host line
       to bufferedLines. Returns null if there is an error or the server is invalid. */
-  private Socket getServerFromHttpHeader(BufferedHttpReader reader, List<String> bufferedLines) {
+  private Socket getServerFromHttpHeader(BufferedStreamReader reader, List<String> bufferedLines) {
     String line;
     while ((line = reader.readLine()) != null) {
       bufferedLines.add(line);

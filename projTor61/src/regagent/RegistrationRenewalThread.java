@@ -1,4 +1,4 @@
-package regserver;
+package regagent;
 
 import java.util.ArrayList;
 import java.util.Collections;

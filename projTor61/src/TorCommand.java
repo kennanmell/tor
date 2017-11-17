@@ -24,7 +24,7 @@ public enum TorCommand {
   /** Converts a byte to a `TorCommand`.
       @return A `TorCommand` associated with the byte, or `null` if there is
               no `TorCommand` associated with it. */
-  public static Command fromByte(byte b) {
+  public static TorCommand fromByte(byte b) {
     switch (b) {
     case 1: return TorCommand.CREATE;
     case 2: return TorCommand.CREATED;

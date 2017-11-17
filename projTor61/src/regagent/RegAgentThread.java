@@ -1,4 +1,4 @@
-package regserver;
+package regagent;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -36,30 +36,41 @@ public class RegAgentThread extends Thread {
   private int instanceNo;
   /// The id for the Service to register, sent as the data field during registration.
   private int agentId;
+  /// The port of the service to register.
+  private int iport;
 
-  public RegAgentThread(int groupNo, int instanceNo, int agentId) {
+  public RegAgentThread(int groupNo, int instanceNo, int agentId, int iport) {
     this.groupNo = groupNo;
     this.instanceNo = instanceNo;
     this.agentId = agentId;
 
-    InetAddress serverAddress
+    InetAddress serverAddress;
     try {
       serverAddress = InetAddress.getByName("cse461.cs.washington.edu");
     } catch (UnknownHostException e) {
+      return;
       // TODO
     }
-    final int iport = 46101;
+    final int serverPort = 46101;
 
     // Bind to adjacent ports.
     int startPort = 1500;
     while (writeSocket == null || readSocket == null) {
       try {
+        System.out.println("in try " + startPort);
         writeSocket = new DatagramSocket(1500);
         startPort++;
         readSocket = new DatagramSocket(1501);
         writeSocket.setSoTimeout(REQUEST_TIMEOUT_MS);
       } catch (SocketException e) {
+        System.out.println("in catch");
         startPort++;
+        if (writeSocket != null) {
+          writeSocket.close();
+        }
+        if (readSocket != null) {
+          readSocket.close();
+        }
         writeSocket = null;
         readSocket = null;
         continue;
@@ -82,6 +93,12 @@ public class RegAgentThread extends Thread {
     registrationRenewer.start();
 
     // Register the service.
+    InetAddress localhostIp = null;
+    try {
+      localhostIp = InetAddress.getLocalHost();
+    } catch (UnknownHostException e) {
+      // TODO
+    }
     final String serviceName = "Tor61Router-" + String.format("%04d", groupNo) + "-" +
         String.format("%04d", instanceNo);
     Service service = new Service(localhostIp, iport, agentId, serviceName);
@@ -100,7 +117,7 @@ public class RegAgentThread extends Thread {
     }
 
     Service[] result = new Service[CIRCUIT_LENGTH];
-    for (i = 0; i < result.length; i++) {
+    for (int i = 0; i < result.length; i++) {
       result[i] = candidates[r.nextInt(candidates.length)];
     }
 

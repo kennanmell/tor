@@ -1,0 +1,9 @@
+#!/bin/bash
+
+argOne=1
+argTwo=2
+argThree=3
+
+javac src/regagent/*.java
+javac -cp src:src/regagent src/*.java
+java -cp .:src:src/regagent src.TorMain ${!argOne} ${!argTwo} ${!argThree}

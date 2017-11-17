@@ -1,4 +1,4 @@
-package regserver;
+package regagent;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

@@ -1,4 +1,4 @@
-package regserver;
+package regagent;
 
 /** Represents the 7 types of commands used by the agent and server to communicate. */
 public enum Command {

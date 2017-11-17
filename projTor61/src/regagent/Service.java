@@ -1,4 +1,4 @@
-package regserver;
+package regagent;
 
 import java.net.InetAddress;
 

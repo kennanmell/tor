@@ -57,13 +57,11 @@ public class RegAgentThread extends Thread {
     int startPort = 1500;
     while (writeSocket == null || readSocket == null) {
       try {
-        System.out.println("in try " + startPort);
-        writeSocket = new DatagramSocket(1500);
-        startPort++;
-        readSocket = new DatagramSocket(1501);
+        writeSocket = new DatagramSocket(startPort);
+        startPort += 1;
+        readSocket = new DatagramSocket(startPort);
         writeSocket.setSoTimeout(REQUEST_TIMEOUT_MS);
       } catch (SocketException e) {
-        System.out.println("in catch");
         startPort++;
         if (writeSocket != null) {
           writeSocket.close();

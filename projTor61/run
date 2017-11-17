@@ -5,5 +5,6 @@ argTwo=2
 argThree=3
 
 javac src/regagent/*.java
-javac -cp src:src/regagent src/*.java
-java -cp .:src:src/regagent src.TorMain ${!argOne} ${!argTwo} ${!argThree}
+javac src/proxy/*.java
+javac -cp .:src:src/regagent:src/proxy src/*.java
+java -cp .:src:src/regagent:src/proxy src.TorMain ${!argOne} ${!argTwo} ${!argThree}

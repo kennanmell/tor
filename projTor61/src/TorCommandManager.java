@@ -131,12 +131,11 @@ public class TorCommandManager {
   }
 
   // Returns list view of body
-  public static List<Byte> getBody(Byte[] cell) {
+  public static List<Byte> getBody(byte[] cell) {
   	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return null;
     }
-    List<Byte> b = Arrays.asList(cell);
-    return b.subList(14, cell.length);
+    return Arrays.asList(ArrayUtils.toPrimitive(cell)).subList(14, cell.length);
   }
 }

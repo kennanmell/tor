@@ -131,7 +131,7 @@ public class TorCommandManager {
   }
 
   // Returns list view of body
-  public static List<Byte> getBody(byte[] cell) {
+  public static List<Byte> getBody(Byte[] cell) {
   	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return null;

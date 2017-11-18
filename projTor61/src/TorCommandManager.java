@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Arrays;
 
+// TorCommandManager is used to make Tor61 messages and to extract fields
+// from the messages.
 public class TorCommandManager {
   // Size of a Tor61 cell
   public static final int CELLSIZE = 512;

@@ -131,12 +131,15 @@ public class TorCommandManager {
     return ByteBuffer.wrap(cell).get(13);
   }
 
-  // Returns list view of body
-  public static List<Byte> getBody(byte[] cell) {
+  // Returns body of RELAY
+  public static byte[] getBody(byte[] cell) {
   	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return null;
     }
-    return Arrays.asList(ArrayUtils.toPrimitive(cell)).subList(14, cell.length);
+    int length = getBodyLength(cell);
+    byte[] ret = new byte[length];
+    System.arraycopy(cell, 14, ret, 0, length);
+    return ret;
   }
 }

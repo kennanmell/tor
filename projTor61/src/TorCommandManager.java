@@ -19,48 +19,48 @@ public class TorCommandManager {
 
   // Returns byte array of OPEN cell.
   public static byte[] makeOpen(int circuitID, int openerID, int openedID) {
-    byte[] cell = TorCommandHandler.makeCommonHeader(circuitID, TorCommand.OPEN);
+    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.OPEN);
     ByteBuffer.wrap(cell).putInt(3, openerID).putInt(7, openerID);
     return cell;
   }
   
   // Returns byte array of OPENED cell.
   public static byte[] makeOpened(int circuitID, int openerID, int openedID) {
-    byte[] cell = TorCommandHandler.makeCommonHeader(circuitID, TorCommand.OPENED);
+    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.OPENED);
     ByteBuffer.wrap(cell).putInt(3, openerID).putInt(7, openerID);
     return cell;
   }
 
   // Returns byte array of OPEN cell.
   public static byte[] makeOpenFailed(int circuitID, int openerID, int openedID) {
-    byte[] cell = TorCommandHandler.makeCommonHeader(circuitID, TorCommand.OPEN_FAILED);
+    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.OPEN_FAILED);
     ByteBuffer.wrap(cell).putInt(3, openerID).putInt(7, openerID);
     return cell;
   }
 
   // Returns byte array of CREATE cell.
   public static byte[] makeCreate(int circuitID) {
-    return TorCommandHandler.makeCommonHeader(circuitID, TorCommand.CREATE);
+    return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATE);
   }
 
   // Returns byte array of CREATED cell.
   public static byte[] makeCreated(int circuitID) {
-    return TorCommandHandler.makeCommonHeader(circuitID, TorCommand.CREATED);
+    return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATED);
   }
 
   // Returns byte array of CREATED_FAILED cell.
   public static byte[] makeCreatedFailed(int circuitID) {
-    return TorCommandHandler.makeCommonHeader(circuitID, TorCommand.CREATE_FAILED);
+    return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATE_FAILED);
   }
 
   // Returns byte array of DESTROY cell.
   public static byte[] makeDestroy(int circuitID) {
-    return TorCommandHandler.makeCommonHeader(circuitID, TorCommand.DESTROY);
+    return TorCommandManager.makeCommonHeader(circuitID, TorCommand.DESTROY);
   }
 
   // Returns byte array of RELAY cell.
   public static byte[] makeRelay(int circuitID, int streamID, RelayCommand relayCommand, byte[] body) {
-  	byte[] cell = TorCommandHandler.makeCommonHeader(circuitID, TorCommand.RELAY);
+  	byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
   	ByteBuffer.wrap(cell).putShort(3, (short) streamID).putShort(11, (short) body.length).put(13, relaycommand.toByte());
   	System.arraycopy(body, 0, cell, 14, body.length);
   	return cell;
@@ -78,7 +78,7 @@ public class TorCommandManager {
 
   // Returns Opener ID of OPEN/OPENED/OPENED_FAILED cell
   public int getOpenerID(byte[] cell) {
-    TorCommand command = TorCommandHandler.getCommand(cell);
+    TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.OPEN && command != TorCommand.OPENED && command != TorCommand.OPEN_FAILED) {
     	return -1;
     }
@@ -87,7 +87,7 @@ public class TorCommandManager {
 
   // Returns OpenedID of OPEN/OPENED/OPENED_FAILED cell
   public int getOpenedID(byte[] cell) {
-    TorCommand command = TorCommandHandler.getCommand(cell);
+    TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.OPEN && command != TorCommand.OPENED && command != TorCommand.OPEN_FAILED) {
     	return -1;
     }
@@ -96,7 +96,7 @@ public class TorCommandManager {
 
   // Returns Stream ID of RELAY cell
   public int getStreamID(byte[] cell) {
-  	TorCommand command = TorCommandHandler.getCommand(cell);
+  	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return -1;
     }
@@ -105,7 +105,7 @@ public class TorCommandManager {
 
   // Returns true if cell has valid 0 region
   public boolean relayIsValid(byte[] cell) {
-  	TorCommand command = TorCommandHandler.getCommand(cell);
+  	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return false;
     }
@@ -114,7 +114,7 @@ public class TorCommandManager {
 
   // Returns length of cell body.
   public int getBodyLength(byte[] cell) {
-  	TorCommand command = TorCommandHandler.getCommand(cell);
+  	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return -1;
     }
@@ -123,7 +123,7 @@ public class TorCommandManager {
 
   // Returns RELAY command of RELAY cell.
   public byte getRelayCommand(byte[] cell) {
-  	TorCommand command = TorCommandHandler.getCommand(cell);
+  	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return -1;
     }
@@ -132,7 +132,7 @@ public class TorCommandManager {
 
   // Returns list view of body
   public List<Byte> getBody(byte[] cell) {
-  	TorCommand command = TorCommandHandler.getCommand(cell);
+  	TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.RELAY) {
     	return null;
     }

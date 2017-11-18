@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Arrays;
 
-public class TorCommandHandler {
+public class TorCommandManager {
   // Size of a Tor61 cell
   public static final int CELLSIZE = 512;
   
@@ -16,7 +16,7 @@ public class TorCommandHandler {
   	ByteBuffer.wrap(cell).putShort(0, (short) circuitID).put(2, command.toByte());
   	return cell;
   }
-  
+
   // Returns byte array of OPEN cell.
   public static byte[] makeOpen(int circuitID, int openerID, int openedID) {
     byte[] cell = TorCommandHandler.makeCommonHeader(circuitID, TorCommand.OPEN);

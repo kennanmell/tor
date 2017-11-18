@@ -127,7 +127,7 @@ public class TorCommandManager {
     if (command != TorCommand.RELAY) {
     	return -1;
     }
-    return (int) ByteBuffer.wrap(cell).getShort(13);
+    return ByteBuffer.wrap(cell).get(13);
   }
 
   // Returns list view of body

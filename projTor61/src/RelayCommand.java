@@ -1,6 +1,6 @@
 package src;
 
-/** Represents the 8 types of commands used by the agent and server to communicate. */
+/** Represents the 8 types of commands used by Relay messages. */
 public enum RelayCommand {
   BEGIN, DATA, END, CONNECTED, EXTEND, EXTENDED, BEGIN_FAILED, EXTEND_FAILED;
 

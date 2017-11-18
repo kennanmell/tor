@@ -3,7 +3,6 @@ package src;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Arrays;
-import org.apache.commons.lang3.ArrayUtils;
 
 public class TorCommandManager {
   // Size of a Tor61 cell

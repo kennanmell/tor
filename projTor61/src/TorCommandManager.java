@@ -136,7 +136,7 @@ public class TorCommandManager {
     if (command != TorCommand.RELAY) {
     	return null;
     }
-    List<Byte> b = (List<Byte>) Arrays.asList(cell);
+    List<Byte> b = Arrays.asList(cell);
     return b.subList(14, cell.length);
   }
 }

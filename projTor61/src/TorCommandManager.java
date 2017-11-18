@@ -91,7 +91,7 @@ public class TorCommandManager {
     if (command != TorCommand.OPEN && command != TorCommand.OPENED && command != TorCommand.OPEN_FAILED) {
     	return -1;
     }
-    return ByteBuffer.getShort(7);
+    return ByteBuffer.wrap(cell).getShort(7);
   }
 
   // Returns Stream ID of RELAY cell
@@ -100,7 +100,7 @@ public class TorCommandManager {
     if (command != TorCommand.RELAY) {
     	return -1;
     }
-    return ByteBuffer.getShort(3);
+    return ByteBuffer.wrap(cell).getShort(3);
   }
 
   // Returns true if cell has valid 0 region
@@ -109,7 +109,7 @@ public class TorCommandManager {
     if (command != TorCommand.RELAY) {
     	return false;
     }
-    return (int) ByteBuffer.getShort(5) == 0;
+    return (int) ByteBuffer.wrap(cell).getShort(5) == 0;
   }
 
   // Returns length of cell body.
@@ -118,7 +118,7 @@ public class TorCommandManager {
     if (command != TorCommand.RELAY) {
     	return -1;
     }
-    return (int) ByteBuffer.getShort(11);
+    return (int) ByteBuffer.wrap(cell).getShort(11);
   }
 
   // Returns RELAY command of RELAY cell.
@@ -127,7 +127,7 @@ public class TorCommandManager {
     if (command != TorCommand.RELAY) {
     	return -1;
     }
-    return (int) ByteBuffer.getShort(13);
+    return (int) ByteBuffer.wrap(cell).getShort(13);
   }
 
   // Returns list view of body

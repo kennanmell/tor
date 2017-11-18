@@ -77,12 +77,12 @@ public class TorCommandManager {
   }
 
   // Returns Opener ID of OPEN/OPENED/OPENED_FAILED cell
-  public int getOpenerID(byte[] cell) {
+  public static int getOpenerID(byte[] cell) {
     TorCommand command = TorCommandManager.getCommand(cell);
     if (command != TorCommand.OPEN && command != TorCommand.OPENED && command != TorCommand.OPEN_FAILED) {
     	return -1;
     }
-    return ByteBuffer.getShort(3);
+    return ByteBuffer.wrap(cell).getShort(3);
   }
 
   // Returns OpenedID of OPEN/OPENED/OPENED_FAILED cell

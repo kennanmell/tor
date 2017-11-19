@@ -20,22 +20,22 @@ public class TorCommandManager {
   }
 
   // Returns byte array of OPEN cell.
-  public static byte[] makeOpen(int circuitID, int openerID, int openedID) {
-    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.OPEN);
+  public static byte[] makeOpen(int openerID, int openedID) {
+    byte[] cell = TorCommandManager.makeCommonHeader(0, TorCommand.OPEN);
     ByteBuffer.wrap(cell).putInt(3, openerID).putInt(7, openerID);
     return cell;
   }
   
   // Returns byte array of OPENED cell.
-  public static byte[] makeOpened(int circuitID, int openerID, int openedID) {
-    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.OPENED);
+  public static byte[] makeOpened(int openerID, int openedID) {
+    byte[] cell = TorCommandManager.makeCommonHeader(0, TorCommand.OPENED);
     ByteBuffer.wrap(cell).putInt(3, openerID).putInt(7, openerID);
     return cell;
   }
 
   // Returns byte array of OPEN cell.
-  public static byte[] makeOpenFailed(int circuitID, int openerID, int openedID) {
-    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.OPEN_FAILED);
+  public static byte[] makeOpenFailed(int openerID, int openedID) {
+    byte[] cell = TorCommandManager.makeCommonHeader(0, TorCommand.OPEN_FAILED);
     ByteBuffer.wrap(cell).putInt(3, openerID).putInt(7, openerID);
     return cell;
   }

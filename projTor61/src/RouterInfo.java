@@ -1,3 +1,8 @@
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+
 // class to hold router information, passed on to proxy and router threads from tor main
 public class RouterInfo {
 	public int groupNumber;

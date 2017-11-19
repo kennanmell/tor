@@ -24,7 +24,7 @@ public class RouterEntry {
 	        return false;
 	    }
 		final RouterEntry other = (RouterEntry) obj;
-	    if (routerID.equals(other.getRouterID()) && circuitID.equals(other.getCircuitID())) {
+	    if (routerID == other.getRouterID()) && circuitID == other.getCircuitID())) {
 	    	return true;
 	    }
 	    return false;

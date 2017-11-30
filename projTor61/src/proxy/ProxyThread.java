@@ -5,6 +5,8 @@ import java.net.ServerSocket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+// Assign stream ID to each new HTTPRequest thread
+
 /** ProxyMain runs a simple HTTP proxy capable of handling HTTP requests and HTTP connect
     tunneling. Takes a port number as a command line argument. */
 public class ProxyThread extends Thread {

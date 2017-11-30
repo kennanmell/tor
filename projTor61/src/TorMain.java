@@ -1,6 +1,7 @@
 package src;
 
 import regagent.RegAgentThread;
+import proxy.ProxyThread;
 
 public class TorMain {
   public static void main(String[] args) {
@@ -21,11 +22,11 @@ public class TorMain {
       return;
     }
 
-    // TODO: start proxy here
+    (new ProxyThread(iport)).start();
 
     // TODO: create server for tor and use that port
     int tempPort = 5203;
     final int agentId = (groupNo << 16) | instanceNo; // router number
-    (new RegAgentThread(groupNo, instanceNo, agentId, tempPort)).start();
+    (new RegAgentThread(groupNo, instanceNo, agentId, tempPort)).start(); // TODO: use Service class instead?
   }
 }

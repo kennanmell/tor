@@ -56,7 +56,5 @@ public class TorMain {
     RouterInfo routerInfo = new RouterInfo(groupNo, instanceNo, tempPort);
     RouterThread routerThread = new RouterThread(routerInfo, regThread);
     routerThread.start();
-
-    
   }
 }

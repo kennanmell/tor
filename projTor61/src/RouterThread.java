@@ -18,21 +18,13 @@ public class RouterThread extends Thread {
     }
 
 	public void run() {
-	  // 1. establish self circuit
-      (new CircuitInitThread(this.routerInfo, this.regThread)).start();
-      
-      
-
-
-
-
-
+	  // 1. establish self circuit and gateway entry
 
 	  // 2. create stream
+
 	  // 3. carry traffic
 
-	}
-     // make this into a new thread so we can service other routers at the same time we set up our own thread
-    // 1. establish circuit, set gateway entry, return false on failure
+	  // do .join on circuitInitThread to wait for it to finish settin up own circuit
 
+	}
 }

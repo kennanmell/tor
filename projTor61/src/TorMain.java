@@ -46,15 +46,21 @@ public class TorMain {
       return;
     }
 
-    (new ProxyThread(iport)).start();
-
     // TODO: create server for tor and use that port
     int tempPort = 5203;
     final int agentId = (groupNo << 16) | instanceNo; // router number
     RegAgentThread regThread = new RegAgentThread(groupNo, instanceNo, agentId, tempPort); // TODO: use Service class instead?
     regThread.start();
     RouterInfo routerInfo = new RouterInfo(groupNo, instanceNo, tempPort);
+    // Thread for initializing self circuit
+    CircuitInitThread circuitInitThread = new CircuitInitThread(this.routerInfo, this.regThread);
+    circuitInitThread.start();
+    // Thread for handling Tor side requests
     RouterThread routerThread = new RouterThread(routerInfo, regThread);
     routerThread.start();
+
+    // circuit needs to be initialized with gatewayentry in routerInfo set for proxy thread to send on the self circuit
+    circuitInitThread.join();
+    (new ProxyThread(iport)).start();
   }
 }

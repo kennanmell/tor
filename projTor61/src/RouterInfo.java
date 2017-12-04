@@ -7,13 +7,13 @@ import java.net.Socket;
 
 // class to hold router information, passed on to proxy and router threads from tor main
 public class RouterInfo {
-	public int groupNumber;
-	public int instanceNumber;
-	public int agentID;
-	public int port;
+	public final int groupNumber;
+	public final int instanceNumber;
+	public final int agentID;
+	public final int port;
 
 	// next available stream ID
-	public int nextStreamID;
+	private int nextStreamID;
 
 	// router ID to next available circuit ID
 	public ConcurrentMap<Integer, Integer> nextEvenCircuitID;
@@ -39,5 +39,12 @@ public class RouterInfo {
     	this.streamIDToBuffer = new ConcurrentHashMap<Integer, ConcurrentLinkedQueue<byte[]>>();
     	this.routerIDToSocket = new ConcurrentHashMap<Integer, Socket>();
     	this.routingTable = new ConcurrentHashMap<RouterEntry, RouterEntry>();
+    }
+
+    // Returns next available stream ID in a thread safe manner
+    public synchronized int getNexStreamID() {
+    	int ret = nextStreamID;
+    	nextStreamID++;
+    	return ret;
     }
 }

@@ -51,6 +51,12 @@ public class TorMain {
     // TODO: create server for tor and use that port
     int tempPort = 5203;
     final int agentId = (groupNo << 16) | instanceNo; // router number
-    (new RegAgentThread(groupNo, instanceNo, agentId, tempPort)).start(); // TODO: use Service class instead?
+    RegAgentThread regThread = new RegAgentThread(groupNo, instanceNo, agentId, tempPort); // TODO: use Service class instead?
+    regThread.start();
+    RouterInfo routerInfo = new RouterInfo(groupNo, instanceNo, tempPort);
+    RouterThread routerThread = new RouterThread(routerInfo, regThread);
+    routerThread.start();
+
+    
   }
 }

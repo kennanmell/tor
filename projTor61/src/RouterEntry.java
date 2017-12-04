@@ -1,17 +1,18 @@
 package src;
+import java.net.Socket;
 // class used for storing router table entries and values
 
 public class RouterEntry {
-	private int routerID;
+	private Socket socket;
 	private int circuitID;
 
-	public RouterEntry(int routerID, int circuitID) {
-		this.routerID = routerID;
+	public RouterEntry(Socket socket, int circuitID) {
+		this.socket = socket;
 		this.circuitID = circuitID;
 	}
 
-	public int getRouterID() {
-		return this.routerID;
+	public int getSocket() {
+		return this.socket;
 	}
 
 	public int getCircuitID() {
@@ -25,7 +26,7 @@ public class RouterEntry {
 	        return false;
 	    }
 		final RouterEntry other = (RouterEntry) obj;
-	    if ((routerID == other.getRouterID()) && (circuitID == other.getCircuitID())) {
+	    if (socket == other.getSocket()) && (circuitID == other.getCircuitID())) {
 	    	return true;
 	    }
 	    return false;
@@ -34,7 +35,7 @@ public class RouterEntry {
 	@Override
     public int hashCode() {
         int hash = 1610612741;
-        hash = (37 * hash) + this.getRouterID();
+        hash = (37 * hash) + this.socket.hashCode();
         hash = (37 * hash) + this.getCircuitID();
         return hash;
     }

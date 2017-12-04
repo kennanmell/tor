@@ -7,7 +7,8 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.HashMap;
 
-// class to hold router information, passed on to proxy and router threads from tor main
+// class to hold router information, passed on to proxy and router threads from tor main.
+// Encapsulates the state of the router and connection information.
 public class RouterInfo {
 	private final int groupNumber;
 	private final int instanceNumber;
@@ -15,6 +16,10 @@ public class RouterInfo {
 	private final int port;
 	// next available stream ID
 	private int nextStreamID;
+
+	// entry containing circuit ID and socket for own circuit
+	private RouterEntry selfEntry;
+
 	// router ID to next available circuit ID
 	private Map<Integer, Integer> nextEvenCircuitID;
 	private Map<Integer, Integer> nextOddCircuitID;

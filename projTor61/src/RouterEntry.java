@@ -1,7 +1,8 @@
 package src;
-import java.net.Socket;
-// class used for storing router table entries and values
 
+import java.net.Socket;
+
+// class used for storing router table entries and values
 public class RouterEntry {
 	private Socket socket;
 	private int circuitID;

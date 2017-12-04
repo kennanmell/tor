@@ -7,6 +7,7 @@ import java.net.UnknownHostException;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.Arrays;
 
 /** Runs a command-line interface that allows the user to act as the client of an
     agent via a simple command line interface. The agent communicates with
@@ -107,18 +108,19 @@ public class RegAgentThread extends Thread {
     }
   }
 
-  public Service[] getNewCircuit() {
-    Random r = new Random();
+  // Return all reported services available
+  public Set<Service> getAllServices() {
+    //Random r = new Random();
     Service[] candidates = requestHandler.fetchServicesBeginningWith("Tor61Router");
     if (candidates.length == 0) {
       // TODO
     }
-
-    Service[] result = new Service[CIRCUIT_LENGTH];
+    return new HashSet<Service>(Arrays.asList(candidates));
+    /*Service[] result = new Service[CIRCUIT_LENGTH];
     for (int i = 0; i < result.length; i++) {
       result[i] = candidates[r.nextInt(candidates.length)];
-    }
+    }*/
 
-    return result;
+    //return result;
   }
 }

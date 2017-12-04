@@ -33,14 +33,17 @@ public class RouterThread extends Thread {
     // 1. establish circuit, set gateway entry, return false on failure
 	public static boolean resetCircuit() {
 		Services[] circuitStops = regThread.getNewCircuit();
+
 		// check that 3 routers are reported
 		if (circuitStops.length != 3) {
 			return false;
 		}
+
 		Service firstStop = circuitStops[0];
 		int thisAgentID = routerInfo.getAgentID();
 		int nextAgentID = firstStop.getAgentID();
 		Socket gatewaySocket = null;
+		
 		try {
 			// check if we already have a TCP connection
 	        if (routerInfo.getSocket(nextAgentID) != null) {

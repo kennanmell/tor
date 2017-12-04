@@ -64,12 +64,25 @@ public class RouterInfo {
     	return ret;
     }
 
+    // Returns next available even circuit ID given the next routerID
     public synchronized int getNextEvenCircuitID(int routerID) {
+    	if (!nextEvenCircuitID.containsKey(routerID) {
+    		nextEvenCircuitID.put(routerID, 2);
+    	}
+    	int ret = nextEvenCircuitID.get(routerID);
+    	nextEvenCircuitID.put(routerID, ret + 2);
+    	return ret;
+    }
+
+    // Returns next available even circuit ID given the next routerID
+    public synchronized int getNextOddCircuitID(int routerID) {
     	if (!nextOddCircuitID.containsKey(routerID) {
-    		nextOddCircuitID.put(routerID, 2);
+    		nextOddCircuitID.put(routerID, 1);
     	}
     	int ret = nextOddCircuitID.get(routerID);
     	nextOddCircuitID.put(routerID, ret + 2);
     	return ret;
     }
+
+
 }

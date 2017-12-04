@@ -10,6 +10,7 @@ import java.util.Collections;
 public class RouterThread extends Thread {
 	private RegAgentThread regThread;
 	private RouterInfo routerInfo;
+	private ServerSocket serverSocket;
 	private static final int TIMEOUT = 10000;
 
     public RouterThread(RouterInfo routerInfo, RegAgentThread regThread) {
@@ -18,13 +19,8 @@ public class RouterThread extends Thread {
     }
 
 	public void run() {
-	  // 1. establish self circuit and gateway entry
-
-	  // 2. create stream
+	  // 2. create streams
 
 	  // 3. carry traffic
-
-	  // do .join on circuitInitThread to wait for it to finish settin up own circuit
-
 	}
 }

@@ -7,26 +7,26 @@ import java.net.Socket;
 
 // class to hold router information, passed on to proxy and router threads from tor main
 public class RouterInfo {
-	public final int groupNumber;
-	public final int instanceNumber;
-	public final int agentID;
-	public final int port;
+	private final int groupNumber;
+	private final int instanceNumber;
+	private final int agentID;
+	private final int port;
 
 	// next available stream ID
 	private int nextStreamID;
 
 	// router ID to next available circuit ID
-	public ConcurrentMap<Integer, Integer> nextEvenCircuitID;
-	public ConcurrentMap<Integer, Integer> nextOddCircuitID;
+	private ConcurrentMap<Integer, Integer> nextEvenCircuitID;
+	private ConcurrentMap<Integer, Integer> nextOddCircuitID;
 
 	// socket reader on router side puts cell into buffer for proxy reader to get
-	public ConcurrentMap<Integer, ConcurrentLinkedQueue<byte[]>> streamIDToBuffer;
+	private ConcurrentMap<Integer, ConcurrentLinkedQueue<byte[]>> streamIDToBuffer;
 
 	// router ID's to sockets
-	public ConcurrentMap<Integer, Socket> routerIDToSocket;
+	private ConcurrentMap<Integer, Socket> routerIDToSocket;
 
 	// routing table entries of (routerID, circuitID) tuples
-	public ConcurrentMap<RouterEntry, RouterEntry> routingTable;
+	private ConcurrentMap<RouterEntry, RouterEntry> routingTable;
 
     public RouterInfo(int groupNumber, int instanceNumber, int port) {
     	this.groupNumber = groupNumber;
@@ -41,10 +41,35 @@ public class RouterInfo {
     	this.routingTable = new ConcurrentHashMap<RouterEntry, RouterEntry>();
     }
 
+    public int getGroupNumber() {
+    	return groupNumber;
+    }
+
+    public int getInstanceNumber() {
+    	return instanceNumber;
+    }
+
+    public int getAgentID() {
+    	return agentID;
+    }
+
+    public int getPort() {
+    	return port;
+    }
+
     // Returns next available stream ID in a thread safe manner
     public synchronized int getNexStreamID() {
     	int ret = nextStreamID;
     	nextStreamID++;
+    	return ret;
+    }
+
+    public synchronized int getNextEvenCircuitID(int routerID) {
+    	if (!nextOddCircuitID.containsKey(routerID) {
+    		nextOddCircuitID.put(routerID, 2);
+    	}
+    	int ret = nextOddCircuitID.get(routerID);
+    	nextOddCircuitID.put(routerID, ret + 2);
     	return ret;
     }
 }

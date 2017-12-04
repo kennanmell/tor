@@ -28,6 +28,13 @@ public class Service {
     this.name = name;
   }
 
+  public int getAgentID() {
+    String[] nameChunks = name.split("-");
+    String groupNum = nameChunks[namChunks.length - 2];
+    String InstanceNum = nameChunks[namChunks.length - 1];
+    return ((Integer.parseInt(groupNum) << 16) | Integer.parseInt(InstanceNum));
+  }
+
   @Override
   public String toString() {
     if (name == null) {

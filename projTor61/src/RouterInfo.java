@@ -18,7 +18,7 @@ public class RouterInfo {
 	private int nextStreamID;
 
 	// entry containing circuit ID and socket for own circuit
-	private RouterEntry selfEntry;
+	private RouterEntry gatewayEntry;
 
 	// router ID to next available circuit ID
 	private Map<Integer, Integer> nextEvenCircuitID;
@@ -37,11 +37,20 @@ public class RouterInfo {
     	this.agentID = (groupNumber << 16) | instanceNumber;
     	this.port = port;
     	this.nextStreamID = 1;
+    	this.selfEntry = null;
     	this.nextEvenCircuitID = new HashMap<Integer, Integer>();
     	this.nextOddCircuitID = new HashMap<Integer, Integer>();
     	this.agentIDToSocket = new HashMap<Integer, Socket>();
     	this.routingTable = new HashMap<RouterEntry, RouterEntry>();
     	this.streamIDToBuffer = new ConcurrentHashMap<Integer, ConcurrentLinkedQueue<byte[]>>();
+    }
+
+    public RouterEntry getGatewayEntry() {
+    	return gatewayEntry;
+    }
+
+    public void setGatewayEntry(RouterEntry entry) {
+    	this.gatewayEntry = entry;
     }
 
     public int getGroupNumber() {

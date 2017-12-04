@@ -28,6 +28,13 @@ public class Service {
     this.name = name;
   }
 
+  public int getAgentID() {
+    String[] nameChunks = name.split("-");
+    String groupNum = nameChunks[namChunks.length - 2];
+    String InstanceNum = nameChunks[namChunks.length - 1];
+    return ((Integer.parseInt(groupNum) << 16) | Integer.parseInt(InstanceNum));
+  }
+
   @Override
   public String toString() {
     if (name == null) {
@@ -37,17 +44,25 @@ public class Service {
     }
   }
 
+  // Two Services are equal if their inetaddress and iport are equal.
   @Override
-  public boolean equals(Object other) {
-    // The abstract value of a Service is determined solely by its ip and port
-    // but we assume that all Services registered by an agent have the same ip.
-    return (other instanceof Service) ? ((Service) other).iport == this.iport : false;
+  public boolean equals(Object obj) {
+      if (obj == null || !Service.class.isAssignableFrom(obj.getClass())) {
+          return false;
+      }
+      final Service other = (Service) obj;
+      if ((this.ip.equals(other.ip)) && (this.iport == other.iport)) {
+        return true;
+      }
+      return false;
   }
 
+     // The abstract value of a Service is determined solely by its ip and port.
   @Override
   public int hashCode() {
-    // The abstract value of a Service is determined solely by its ip and port
-    // but we assume that all Services registered by an agent have the same ip.
-    return this.iport;
+    int hash = 1610612741;
+    hash = (37 * hash) + this.ip.hashCode();
+    hash = (37 * hash) + this.iport;
+    return hash;
   }
 }

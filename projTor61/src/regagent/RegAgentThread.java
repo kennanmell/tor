@@ -38,6 +38,8 @@ public class RegAgentThread extends Thread {
   private int agentId;
   /// The port of the service to register.
   private int iport;
+  /// The Service to keep registered (represents the Tor node).
+  private Service service;
 
   public RegAgentThread(int groupNo, int instanceNo, int agentId, int iport) {
     this.groupNo = groupNo;

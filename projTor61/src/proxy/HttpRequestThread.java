@@ -6,6 +6,15 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+// This thread (sends to tor socket RouterEntry.getSocket() gatewayEntry):
+// Relay BEGIN w/ server ip:port (get stream id from router info)
+// Relay data
+// get response from buffer
+
+// Other thread:
+// Read from tor socket RouterEntry.getSocket() gatewayEntry
+// Write to buffer associated with stream id (LinkedBlockingQueue)
+
 /** HttpRequestThread sends one HTTP or HTTP connect request from the browser client to the
     server, then sends the response from the server to the browser. The request
     will always be downgraded to HTTP/1.0 and Connection: close. If the request is

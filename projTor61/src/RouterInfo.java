@@ -24,9 +24,7 @@ public class RouterInfo {
 	private Map<RouterEntry, RouterEntry> routingTable;
 
 	// socket reader on router side puts cell into buffer for proxy reader to get
-	private ConcurrentMap<Integer, ConcurrentLinkedQueue<byte[]>> streamIDToBuffer;
-
-	
+	public ConcurrentMap<Integer, ConcurrentLinkedQueue<byte[]>> streamIDToBuffer;
 
     public RouterInfo(int groupNumber, int instanceNumber, int port) {
     	this.groupNumber = groupNumber;
@@ -38,9 +36,6 @@ public class RouterInfo {
     	this.nextOddCircuitID = new HashMap<Integer, Integer>();
     	this.agentIDToSocket = new HashMap<Integer, Socket>();
     	this.routingTable = new HashMap<RouterEntry, RouterEntry>();
-
-
-
     	this.streamIDToBuffer = new ConcurrentHashMap<Integer, ConcurrentLinkedQueue<byte[]>>();
     }
 
@@ -60,30 +55,39 @@ public class RouterInfo {
     	return port;
     }
 
-    // Returns next available stream ID in a thread safe manner
+    // Returns next available stream ID in a thread safe manner. Wraps streamID to 1 on overflow.
     public synchronized int getNexStreamID() {
     	int ret = nextStreamID;
+    	if (nextStreamID == Integer.MAX_VALUE) {
+    		nextStreamID = 0;
+    	}
     	nextStreamID++;
     	return ret;
     }
 
-    // Returns next available even circuit ID given the next agentID
+    // Returns next available even circuit ID given the next agentID. Wraps circuitID to 2 on overflow.
     public synchronized int getNextEvenCircuitID(int agentID) {
-    	if (!nextEvenCircuitID.containsKey(agentID) {
+    	if (!nextEvenCircuitID.containsKey(agentID)) {
     		nextEvenCircuitID.put(agentID, 2);
     	}
     	int ret = nextEvenCircuitID.get(agentID);
-    	nextEvenCircuitID.put(agentID, ret + 2);
+    	if (nextEvenCircuitID.get(agentID) == Integer.MAX_VALUE - 1) {
+    		nextEvenCircuitID.put(agentID, 0);
+    	}
+    	nextEvenCircuitID.put(agentID, nextEvenCircuitID.get(agentID) + 2);
     	return ret;
     }
 
-    // Returns next available odd circuit ID given the next agentID
+    // Returns next available odd circuit ID given the next agentID. Wraps circuitID to 1 on overflow.
     public synchronized int getNextOddCircuitID(int agentID) {
     	if (!nextOddCircuitID.containsKey(agentID) {
     		nextOddCircuitID.put(agentID, 1);
     	}
     	int ret = nextOddCircuitID.get(agentID);
-    	nextOddCircuitID.put(agentID, ret + 2);
+    	if (nextEvenCircuitID.get(agentID) == Integer.MAX_VALUE) {
+    		nextEvenCircuitID.put(agentID, -1);
+    	}
+    	nextOddCircuitID.put(agentID, nextEvenCircuitID.get(agentID) + 2);
     	return ret;
     }
 
@@ -119,20 +123,13 @@ public class RouterInfo {
     	return routingTable.put(previous, next);
     }
 
-    // Removes the agentID (and its corresponding socket) from this map. This method does nothing if the key is not in the map.
+    // Removes the previous routing entry (and its corresponding next entry) from this map. This method does nothing if the key is not in the map.
     public synchronized RoutingEntry removeEntry(RouterEntry previous) {
     	return routingTable.remove(previous);
     }
 
-    // Returns the number of connected agents.
-    public synchronized int numConnectedAgents() {
-    	return agentIDToSocket.size();
+    // Returns the number of routing table entries.
+    public synchronized int routingTableSize() {
+    	return routingTable.size();
     }
-
-
-
-
-
-
-
 }

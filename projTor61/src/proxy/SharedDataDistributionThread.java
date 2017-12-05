@@ -4,15 +4,17 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 
 public class SharedDataDistributionThread extends Thread {
   private Socket readSocket;
-  private Map<Integer, HttpRequestThread> pendingRequests;
-  public static SharedDataDistributionThread sharedInstance;
+  private Map<Integer, BlockingQueue<byte[]>> pendingRequests;
+  private static SharedDataDistributionThread sharedInstance;
 
   public SharedDataDistributionThread(Socket readSocket) {
     this.readSocket = readSocket;
     this.pendingRequests = new HashMap<>();
+    sharedInstance = this;
   }
 
   @Override
@@ -23,7 +25,7 @@ public class SharedDataDistributionThread extends Thread {
         int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
         synchronized (pendingRequests) {
           if (pendingRequests.containsKey(streamId)) {
-            pendingRequests.get(streamId).buf.put(buf);
+            pendingRequests.get(streamId).put(buf);
           }
         }
       }
@@ -40,5 +42,13 @@ public class SharedDataDistributionThread extends Thread {
     synchronized (pendingRequests) {
       pendingRequests.remove(id);
     }
+  }
+
+  public void addStream(int id, BlockingQueue<byte[]> pending) {
+    pendingRequests.put(id, pending);
+  }
+
+  public static SharedDataDistributionThread sharedInstance() {
+    return sharedInstance;
   }
 }

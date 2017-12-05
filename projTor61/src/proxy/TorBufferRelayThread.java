@@ -35,14 +35,11 @@ public class TorBufferRelayThread extends Thread {
           }
         } else {
           // most likely relay end, but we're done regardless
-          SharedDataDistributionThread.sharedInstance.removeStream(streamId);
           break;
         }
       } catch (IOException e) {
-          SharedDataDistributionThread.sharedInstance.removeStream(streamId);
           break;
       } catch (InterruptedException e) {
-          SharedDataDistributionThread.sharedInstance.removeStream(streamId);
           break;
       }
     }

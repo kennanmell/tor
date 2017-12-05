@@ -157,21 +157,11 @@ public class CircuitInitThread extends Thread {
 		return true;
 	}
 
-<<<<<<< HEAD
 	public static silentCloseSocket(Socket socket) {
 		if (socket == null) {
 			return;
 		} try {
 			socket.close();
-=======
-	public static void silentCloseSocket(Socket s) {
-		if (s == null) {
-			return;
-		}
-
-		try {
-			s.close();
->>>>>>> 8c556abcbd9dfdc4a192cf29dda4c552a72efe65
 		} catch (IOException e) {
 			// no op
 		}

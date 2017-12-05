@@ -16,24 +16,63 @@ public class RouterSocketReader extends Thread {
 		// read from socket
 		DataInputStream input;
 		DataOutputStream output;
+
+		// setup input and output
 		try {
 			input = new DataInputStream(routerSocket.getInputStream());
 			output = new DataOutputStream(gatewaySocket.getOutputStream());
 			routerSocket.setSoTimeout(TIMEOUT);
-		} catch (IOException e) {
-			return;
-		}
-
-		byte[] message = new byte[TorCommandManager.CELLSIZE];
-		try {
+			
+			// read first message
+			byte[] message = new byte[TorCommandManager.CELLSIZE];
 			input.read(message);
-		} catch (IOException e) {
-			return;
-		}
+			
+			// check if message is open
+			if (TorCommandManager.getCommand(message) != TorCommand.OPEN) {
+				byte[] response = TorCommandManager.makeOpenFailed(TorCommandManager.getOpenerID(message), TorCommandManager.getOpenedID(message));
+				output.write(response);
+				silentClose(routerSocket, input, output);
+				return;
+			}
 
-		if (TorCommandManager.getCommand(message) != TorCommand.OPEN) {
-			byte[] response = TorCommandManager.makeOpenFailed(TorCommandManager.getOpenerID(message), TorCommandManager.getOpenedID(message));
+			// send opened
+			byte[] response = TorCommandManager.makeOpened(TorCommandManager.getOpenerID(message), TorCommandManager.getOpenedID(message));
 			output.write(response);
+
+            // read second message
+			message = new byte[TorCommandManager.CELLSIZE];
+			input.read(message);
+
+			// check if message is create
+			if (TorCommandManager.getCommand(message) != TorCommand.CREATE) {
+				byte[] response = TorCommandManager.makeOpenFailed(TorCommandManager.getOpenerID(message), TorCommandManager.getOpenedID(message));
+				output.write(response);
+				silentClose(routerSocket, input, output);
+				return;
+			}
+
+			int circuitID = TorCommandManager.getCircuitID(message);
+
+			// send created
+			byte[] response = TorCommandManager.makeCreated(circuitID);
+			output.write(response);
+
+			
+
+
+
+
+
+
+
+
+
+
+
+
+
+		} catch (IOException e) {
+			silentClose(routerSocket, input, output);
 			return;
 		}
 

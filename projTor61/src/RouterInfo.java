@@ -1,11 +1,9 @@
 package src;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.net.Socket;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.concurrent.LinkedBlockingDeque
 
 // class to hold router information, passed on to proxy and router threads from tor main.
 // Encapsulates the state of the router and connection information.
@@ -16,20 +14,19 @@ public class RouterInfo {
 	private final int port;
 	// next available stream ID
 	private int nextStreamID;
-
 	// entry containing circuit ID and socket for own circuit
 	private RouterEntry gatewayEntry;
-
 	// router ID to next available circuit ID
 	private Map<Integer, Integer> nextEvenCircuitID;
 	private Map<Integer, Integer> nextOddCircuitID;
-	// router ID's to sockets
+	// router ID's to sockets (Tor router side)
 	private Map<Integer, Socket> agentIDToSocket;
+    // stream ID's to sockets (Proxy browser/browser side)
+    private Map<Integer, Socket> streamIDToSocket;
 	// routing table entries of (agentID, circuitID) tuples
 	private Map<RouterEntry, RouterEntry> routingTable;
-
-	// socket reader on router side puts cell into buffer for proxy reader to get
-	public ConcurrentMap<Integer, ConcurrentLinkedQueue<byte[]>> streamIDToBuffer;
+    // Stores buffers for communication between router and tor side
+    private Map<Integer, LinkedBlockingDeque<byte[]>> agentIDToBuffer;
 
     public RouterInfo(int groupNumber, int instanceNumber, int port) {
     	this.groupNumber = groupNumber;
@@ -41,8 +38,21 @@ public class RouterInfo {
     	this.nextEvenCircuitID = new HashMap<Integer, Integer>();
     	this.nextOddCircuitID = new HashMap<Integer, Integer>();
     	this.agentIDToSocket = new HashMap<Integer, Socket>();
+        this.streamIDToSocket = new HashMap<Integer, Socket>();
     	this.routingTable = new HashMap<RouterEntry, RouterEntry>();
-    	this.streamIDToBuffer = new ConcurrentHashMap<Integer, ConcurrentLinkedQueue<byte[]>>();
+    	this.agentIDToBuffer = new HashMap<Integer, LinkedBlockingDeque<byte[]>>();
+    }
+
+    public synchronized LinkedBlockingDeque<byte[]> getTorBuffer(int agentID) {
+        return agentIDToBuffer.get(agentID);
+    }
+
+    public synchronized LinkedBlockingDeque<byte[]> removeTorBuffer(int agentID) {
+        return agentIDToBuffer.remove(agentID);
+    }
+
+    public synchronized LinkedBlockingDeque<byte[]> addTorBuffer(int agentID, LinkedBlockingDeque<byte[]> buffer) {
+        return agentIDToBuffer.put(agentID, buffer);
     }
 
     public RouterEntry getGatewayEntry() {
@@ -72,7 +82,7 @@ public class RouterInfo {
     // Returns next available stream ID in a thread safe manner. Wraps streamID to 1 on overflow.
     public synchronized int getNexStreamID() {
     	int ret = nextStreamID;
-    	if (nextStreamID == Integer.MAX_VALUE) {
+    	if (nextStreamID == 65534) {
     		nextStreamID = 0;
     	}
     	nextStreamID++;
@@ -106,24 +116,45 @@ public class RouterInfo {
     }
 
     // Returns the socket associated with the agentID. Returns null if there was no mapping
-    public synchronized Socket getSocket(int agentID) {
+    public synchronized Socket getRouterSocket(int agentID) {
     	return agentIDToSocket.get(agentID);
     }
 
     // Adds the (agentID, socket) to the map and returns the previous socket, or null if there
     // was no mapping for the key.
-    public synchronized Socket addSocket(int agentID, Socket socket) {
+    public synchronized Socket addRouterSocket(int agentID, Socket socket) {
     	return agentIDToSocket.put(agentID, socket);
     }
 
     // Removes the agentID (and its corresponding socket) from this map. This method does nothing if the key is not in the map.
-    public synchronized Socket removeSocket(int agentID) {
+    public synchronized Socket removeRouterSocket(int agentID) {
     	return agentIDToSocket.remove(agentID);
     }
 
     // Returns the number of connected agents.
     public synchronized int numConnectedAgents() {
-    	return agentIDToSocket.size();
+        return agentIDToSocket.size();
+    }
+
+    // Returns the socket associated with the agentID. Returns null if there was no mapping
+    public synchronized Socket getProxySocket(int streamID) {
+        return streamIDToSocket.get(streamID);
+    }
+
+    // Adds the (agentID, socket) to the map and returns the previous socket, or null if there
+    // was no mapping for the key.
+    public synchronized Socket addProxySocket(int streamID, Socket socket) {
+        return agentIDToSocket.put(streamID, socket);
+    }
+
+    // Removes the agentID (and its corresponding socket) from this map. This method does nothing if the key is not in the map.
+    public synchronized Socket removeProxySocket(int streamID) {
+        return agentIDToSocket.remove(streamID);
+    }
+
+    // Returns the number of connected agents.
+    public synchronized int numRequests() {
+        return streamIDToSocket.size();
     }
 
     // Returns the next RouterEntry (socket, circuitID) to get to the next hop.

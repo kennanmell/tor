@@ -30,8 +30,8 @@ public class Service {
 
   public int getAgentID() {
     String[] nameChunks = name.split("-");
-    String groupNum = nameChunks[namChunks.length - 2];
-    String InstanceNum = nameChunks[namChunks.length - 1];
+    String groupNum = nameChunks[nameChunks.length - 2];
+    String InstanceNum = nameChunks[nameChunks.length - 1];
     return ((Integer.parseInt(groupNum) << 16) | Integer.parseInt(InstanceNum));
   }
 

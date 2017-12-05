@@ -12,7 +12,7 @@ public class RouterEntry {
 		this.circuitID = circuitID;
 	}
 
-	public int getSocket() {
+	public Socket getSocket() {
 		return this.socket;
 	}
 
@@ -22,12 +22,12 @@ public class RouterEntry {
 
 	@Override
 	public boolean equals(Object obj) {
-	    if (obj == null || 
+	    if (obj == null ||
 	    		!RouterEntry.class.isAssignableFrom(obj.getClass())) {
 	        return false;
 	    }
 		final RouterEntry other = (RouterEntry) obj;
-	    if (socket == other.getSocket()) && (circuitID == other.getCircuitID())) {
+	    if (socket == other.getSocket() && circuitID == other.getCircuitID()) {
 	    	return true;
 	    }
 	    return false;

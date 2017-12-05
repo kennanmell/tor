@@ -2,6 +2,7 @@ package proxy;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -12,9 +13,20 @@ import java.util.Date;
 public class ProxyThread extends Thread {
   /// The port number to accept connections on.
   private int iport;
+  public final int circuitId;
+  private Socket gatewaySocket;
+  private static ProxyThread sharedInstance;
 
-  public ProxyThread (int iport) {
+  public ProxyThread(int iport, int circuitId, Socket gatewaySocket) {
     this.iport = iport;
+    this.circuitId = circuitId;
+    this.gatewaySocket = gatewaySocket;
+    try {
+      gatewaySocket.setSoTimeout(5000);
+    } catch (IOException e) {
+      // no op
+    }
+    ProxyThread.sharedInstance = this;
   }
 
   @Override
@@ -36,5 +48,25 @@ public class ProxyThread extends Thread {
         continue;
       }
     }
+  }
+
+  public Socket getGatewaySocket() {
+    return this.gatewaySocket;
+  }
+
+  public void setGatewaySocket(Socket gatewaySocket) {
+    if (gatewaySocket == null) {
+      throw new IllegalArgumentException();
+    }
+    this.gatewaySocket = gatewaySocket;
+    try {
+      gatewaySocket.setSoTimeout(5000);
+    } catch (IOException e) {
+      // no op
+    }
+  }
+
+  public static ProxyThread sharedInstance() {
+    return ProxyThread.sharedInstance;
   }
 }

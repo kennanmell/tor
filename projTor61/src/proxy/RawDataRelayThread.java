@@ -10,21 +10,51 @@ public class RawDataRelayThread extends Thread {
   private Socket writeSocket;
   /// The socket connected to the server to read data from.
   private Socket readSocket;
+  private int streamId;
 
   /** Sole constructor.
       @param readSocket The TCP socket to read data from (must not be null).
       @param writeSocket The TCP socket to write data to (must not be null). */
-  public RawDataRelayThread(Socket writeSocket, Socket readSocket) {
+  public RawDataRelayThread(Socket writeSocket, Socket readSocket, int streamId) {
     this.writeSocket = writeSocket;
     this.readSocket = readSocket;
+    this.streamId = streamId;
   }
 
   @Override
   public void run() {
+    byte[] message = new byte[512];
+    message[0] = (byte) (ProxyThread.sharedInstance().circuitId >> 8);
+    message[1] = (byte) ProxyThread.sharedInstance().circuitId;
+    message[2] = 3; // relay
+    message[3] = (byte) (streamId >> 8);
+    message[4] = (byte) streamId;
+    message[5] = 0;
+    message[6] = 0;
+    message[11] = (byte) ((512 - 14) >> 8);
+    message[12] = (byte) (512 - 14);
+    message[13] = 2; // data
+
+    int offset = 14;
+
     try {
       int curr;
       while ((curr = readSocket.getInputStream().read()) != -1) {
-          writeSocket.getOutputStream().write(curr);
+        message[offset] = (byte) curr;
+        offset++;
+        if (offset == 512) {
+          writeSocket.getOutputStream().write(message);
+          offset = 14;
+        }
+      }
+
+      if (offset != 14) {
+        message[11] = (byte) ((offset - 14) >> 8);
+        message[12] = (byte) (offset - 14);
+        for (int i = offset; i < 512; i++) {
+          message[i] = 0;
+        }
+        writeSocket.getOutputStream().write(message);
       }
     } catch (IOException e) {
       try {

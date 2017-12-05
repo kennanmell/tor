@@ -40,6 +40,8 @@ public class ProxyThread extends Thread {
       return;
     }
 
+    (new SharedDataDistributionThread(gatewaySocket)).start();
+
     // Accept new TCP connections until proxy is closed.
     while (true) {
       try {

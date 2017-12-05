@@ -57,6 +57,7 @@ public class HttpRequestThread extends Thread {
     this.listener = listener;
     this.buf = new LinkedBlockingQueue<>();
     this.streamId = StreamIdGenerator.next();
+    SharedDataDistributionThread.sharedInstance().addStream(this.streamId, this.buf);
   }
 
   @Override
@@ -65,6 +66,7 @@ public class HttpRequestThread extends Thread {
       BufferedStreamReader reader = new BufferedStreamReader(clientSocket.getInputStream());
       String line = reader.readLine();
       if (line == null) {
+        SharedDataDistributionThread.sharedInstance().removeStream(this.streamId);
         return;
       }
 
@@ -79,6 +81,7 @@ public class HttpRequestThread extends Thread {
       if (line.trim().toLowerCase().startsWith("connect")) {
         if (!connection) {
           clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
+          SharedDataDistributionThread.sharedInstance().removeStream(this.streamId);
           return;
         }
 
@@ -96,10 +99,12 @@ public class HttpRequestThread extends Thread {
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
         clientSocket.setSoTimeout(0);
         (new RawDataRelayThread(
-            ProxyThread.sharedInstance().getGatewaySocket(), clientSocket)).start();
+            ProxyThread.sharedInstance().getGatewaySocket(), clientSocket, streamId)).start();
         (new TorBufferRelayThread(clientSocket, buf, streamId)).run();
+        SharedDataDistributionThread.sharedInstance().removeStream(this.streamId);
       } else {
         if (!connection) {
+          SharedDataDistributionThread.sharedInstance().removeStream(this.streamId);
           return;
         }
 
@@ -111,6 +116,7 @@ public class HttpRequestThread extends Thread {
 
         handleHttpMessage(clientSocket, ProxyThread.sharedInstance().getGatewaySocket());
         handleHttpResponse(clientSocket);
+        SharedDataDistributionThread.sharedInstance().removeStream(this.streamId);
       }
     } catch (IOException e) {
       try {
@@ -118,26 +124,82 @@ public class HttpRequestThread extends Thread {
       } catch (IOException e2) {
         // no op
       }
+
+      SharedDataDistributionThread.sharedInstance().removeStream(this.streamId);
       return;
     }
   }
 
   /** Handles an HTTP header and body sent from readSocket to writeSocket. */
   private void handleHttpMessage(Socket readSocket, Socket writeSocket) throws IOException {
+    byte[] message = new byte[512];
+    message[0] = (byte) (ProxyThread.sharedInstance().circuitId >> 8);
+    message[1] = (byte) ProxyThread.sharedInstance().circuitId;
+    message[2] = 3; // relay
+    message[3] = (byte) (streamId >> 8);
+    message[4] = (byte) streamId;
+    message[5] = 0;
+    message[6] = 0;
+    message[11] = (byte) ((512 - 14) >> 8);
+    message[12] = (byte) (512 - 14);
+    message[13] = 2; // data
+
     BufferedStreamReader reader = new BufferedStreamReader(readSocket.getInputStream());
+    String buf = "";
     String line;
     while ((line = reader.readLine()) != null) {
-      writeSocket.getOutputStream().write(modifyHttpHeaderLine(line).getBytes());
+      line = modifyHttpHeaderLine(line);
+      buf += line;
+      if (buf.length() >= (512 - 14)) {
+        System.arraycopy(buf, 0, message, 14, 512 - 14);
+        writeSocket.getOutputStream().write(message);
+        buf = buf.substring(512 - 14);
+      }
       if (line.equals("\n") || line.equals("\r\n")) {
+        while (buf.length() != 0) {
+          // TODO
+          message[11] = (byte) (Math.min(buf.length(), 512 - 14) >> 8);
+          message[12] = (byte) Math.min(buf.length(), 512 - 14);
+          System.arraycopy(buf, 0, message, 14, Math.min(buf.length(), 512 - 14));
+          writeSocket.getOutputStream().write(message);
+          buf = buf.substring(Math.min(buf.length(), 512 - 14));
+        }
         break;
       }
     }
 
-    (new RawDataRelayThread(readSocket, writeSocket)).run();
+    (new RawDataRelayThread(readSocket, writeSocket, streamId)).run();
   }
 
   private void handleHttpResponse(Socket writeSocket) {
-
+    StringBuilder line = new StringBuilder();
+    while (true) {
+      try {
+        byte[] curr = buf.poll(25000, TimeUnit.MILLISECONDS);
+        if (curr[2] == 3 && curr[13] == 2) { // relay data
+          int length = ((curr[11] & 0xFF) << 8 | (curr[12] & 0xFF));
+          for (int i = 14; i < 14 + length; i++) {
+            line.append((char) curr[i]);
+            if (curr[i] == (int) '\n') {
+              clientSocket.getOutputStream().write(line.toString().getBytes());
+              if (line.equals("\n") || line.equals("\r\n")) {
+                (new TorBufferRelayThread(clientSocket, buf, streamId)).run();
+                break;
+              }
+              line = new StringBuilder();
+            }
+            writeSocket.getOutputStream().write(curr[i]);
+          }
+        } else {
+          // most likely relay end, but we're done regardless
+          break;
+        }
+      } catch (IOException e) {
+          break;
+      } catch (InterruptedException e) {
+          break;
+      }
+    }
   }
 
   /** Parses an HTTP header line to downgrade to HTTP/1.0 and Connection: close.
@@ -219,13 +281,13 @@ public class HttpRequestThread extends Thread {
     message[6] = 0;
     message[11] = (byte) (body.length >> 8);
     message[12] = (byte) body.length;
-    message[12] = 1; // begin
-    System.arraycopy(body, 0, message, 13, body.length);
+    message[13] = 1; // begin
+    System.arraycopy(body, 0, message, 14, body.length);
     try {
       ProxyThread.sharedInstance().getGatewaySocket().getOutputStream().write(message);
       byte[] result = buf.poll(SO_TIMEOUT_MS, TimeUnit.MILLISECONDS);
       // TODO: handle timeout, stricter data integrity in check
-      return result[12] == 4; // connected
+      return result[13] == 4; // connected
     } catch (IOException e) {
       return false;
     } catch (InterruptedException e) {

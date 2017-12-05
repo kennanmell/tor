@@ -78,19 +78,6 @@ public class RouterInfo {
     	return port;
     }
 
-<<<<<<< HEAD
-    // Returns next available stream ID in a thread safe manner. Wraps streamID to 1 on overflow.
-    public synchronized int getNexStreamID() {
-    	int ret = nextStreamID;
-    	if (nextStreamID == 65534) {
-    		nextStreamID = 0;
-    	}
-    	nextStreamID++;
-    	return ret;
-    }
-
-=======
->>>>>>> 8c556abcbd9dfdc4a192cf29dda4c552a72efe65
     // Returns next available even circuit ID given the next agentID. Wraps circuitID to 2 on overflow.
     public synchronized int getNextEvenCircuitID(int agentID) {
     	if (!nextEvenCircuitID.containsKey(agentID)) {
@@ -146,12 +133,12 @@ public class RouterInfo {
     // Adds the (agentID, socket) to the map and returns the previous socket, or null if there
     // was no mapping for the key.
     public synchronized Socket addProxySocket(int streamID, Socket socket) {
-        return agentIDToSocket.put(streamID, socket);
+        return streamIDToSocket.put(streamID, socket);
     }
 
     // Removes the agentID (and its corresponding socket) from this map. This method does nothing if the key is not in the map.
     public synchronized Socket removeProxySocket(int streamID) {
-        return agentIDToSocket.remove(streamID);
+        return streamIDToSocket.remove(streamID);
     }
 
     // Returns the number of connected agents.

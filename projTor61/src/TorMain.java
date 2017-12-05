@@ -28,6 +28,8 @@ import proxy.ProxyThread;
 
 public class TorMain {
 
+  static RouterInfo routerInfo;
+
   public static void main(String[] args) {
     if (args.length != 3) {
       System.out.println("usage: ./run <group number> <instance number> <HTTP Proxy port>");
@@ -51,7 +53,7 @@ public class TorMain {
     final int agentId = (groupNo << 16) | instanceNo; // router number
     RegAgentThread regThread = new RegAgentThread(groupNo, instanceNo, agentId, tempPort); // TODO: use Service class instead?
     regThread.start();
-    RouterInfo routerInfo = new RouterInfo(groupNo, instanceNo, tempPort);
+    routerInfo = new RouterInfo(groupNo, instanceNo, tempPort);
     // Thread for initializing self circuit
     CircuitInitThread circuitInitThread = new CircuitInitThread(routerInfo, regThread);
     circuitInitThread.start();
@@ -61,6 +63,8 @@ public class TorMain {
 
     // circuit needs to be initialized with gatewayentry in routerInfo set for proxy thread to send on the self circuit
     circuitInitThread.join();
-    (new ProxyThread(iport)).start();
+    (new ProxyThread(iport,
+                     routerInfo.getGatewayEntry().getCircuitID(),
+                     routerInfo.getGatewayEntry().getSocket())).start();
   }
 }

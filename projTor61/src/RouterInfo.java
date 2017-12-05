@@ -12,8 +12,7 @@ public class RouterInfo {
 	private final int instanceNumber;
 	private final int agentID;
 	private final int port;
-	// next available stream ID
-	private int nextStreamID;
+
 	// entry containing circuit ID and socket for own circuit
 	private RouterEntry gatewayEntry;
 	// router ID to next available circuit ID
@@ -79,6 +78,7 @@ public class RouterInfo {
     	return port;
     }
 
+<<<<<<< HEAD
     // Returns next available stream ID in a thread safe manner. Wraps streamID to 1 on overflow.
     public synchronized int getNexStreamID() {
     	int ret = nextStreamID;
@@ -89,6 +89,8 @@ public class RouterInfo {
     	return ret;
     }
 
+=======
+>>>>>>> 8c556abcbd9dfdc4a192cf29dda4c552a72efe65
     // Returns next available even circuit ID given the next agentID. Wraps circuitID to 2 on overflow.
     public synchronized int getNextEvenCircuitID(int agentID) {
     	if (!nextEvenCircuitID.containsKey(agentID)) {
@@ -104,7 +106,7 @@ public class RouterInfo {
 
     // Returns next available odd circuit ID given the next agentID. Wraps circuitID to 1 on overflow.
     public synchronized int getNextOddCircuitID(int agentID) {
-    	if (!nextOddCircuitID.containsKey(agentID) {
+    	if (!nextOddCircuitID.containsKey(agentID)) {
     		nextOddCircuitID.put(agentID, 1);
     	}
     	int ret = nextOddCircuitID.get(agentID);

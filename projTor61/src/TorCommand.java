@@ -5,8 +5,7 @@ public enum TorCommand {
   OPEN, OPENED, OPEN_FAILED, CREATE, CREATED, CREATE_FAILED, DESTROY, RELAY;
 
   /** Converts this `TorCommand` to a byte.
-      @return A `byte` corresponding to the `TorCommand`.
-      @throws IllegalArgumentException if the `TorCommand` is not recognized. */
+      @return A `byte` corresponding to the `TorCommand`, or -1 if the command if not recognized. */
   public byte toByte() {
     switch (this) {
     case CREATE:        return 1;
@@ -17,7 +16,7 @@ public enum TorCommand {
     case OPENED:        return 6;
     case OPEN_FAILED:   return 7;
     case CREATE_FAILED: return 8;
-    default: throw new IllegalArgumentException();
+    default:            return -1;
     }
   }
 

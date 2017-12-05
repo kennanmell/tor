@@ -5,6 +5,22 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+// This thread (sends to tor socket RouterEntry.getSocket() gatewayEntry):
+// Relay BEGIN w/ server ip:port (get stream id from router info)
+//     Wait for response
+//         Connected:
+//            Relay data
+//            get response from buffer
+//         BEGIN failed or timeout:
+//            close client socket, done
+
+// Other thread:
+// Read from tor socket RouterEntry.getSocket() gatewayEntry
+// Write to buffer associated with stream id (LinkedBlockingQueue)
 
 /** HttpRequestThread sends one HTTP or HTTP connect request from the browser client to the
     server, then sends the response from the server to the browser. The request
@@ -22,10 +38,11 @@ public class HttpRequestThread extends Thread {
 
   /// The socket for communication with the browser client.
   private Socket clientSocket;
-  /// The socket for communication with the server.
-  private Socket serverSocket;
   /// An HttpRequestListener that is called when events occur in this thread.
   private HttpRequestListener listener;
+  /// Buffer for communication with the server via tor.
+  public BlockingQueue<byte[]> buf;
+  final int streamId;
 
   /** Sole constructor.
       @param clientSocket The socket for communication with the browser (must not be null).
@@ -37,8 +54,9 @@ public class HttpRequestThread extends Thread {
       // no op
     }
     this.clientSocket = clientSocket;
-    this.serverSocket = null;
     this.listener = listener;
+    this.buf = new LinkedBlockingQueue<>();
+    this.streamId = StreamIdGenerator.next();
   }
 
   @Override
@@ -56,10 +74,10 @@ public class HttpRequestThread extends Thread {
 
       List<String> bufferedLines = new ArrayList<>();
       bufferedLines.add(line);
-      serverSocket = getServerFromHttpHeader(reader, bufferedLines);
+      boolean connection = beginRelayWithHttpHeader(reader, bufferedLines);
 
       if (line.trim().toLowerCase().startsWith("connect")) {
-        if (serverSocket == null) {
+        if (!connection) {
           clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
           return;
         }
@@ -77,29 +95,26 @@ public class HttpRequestThread extends Thread {
 
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
         clientSocket.setSoTimeout(0);
-        serverSocket.setSoTimeout(0);
-        (new RawDataRelayThread(clientSocket, serverSocket)).start();
-        (new RawDataRelayThread(serverSocket, clientSocket)).run();
+        (new RawDataRelayThread(
+            ProxyThread.sharedInstance().getGatewaySocket(), clientSocket)).start();
+        (new TorBufferRelayThread(clientSocket, buf, streamId)).run();
       } else {
-        if (serverSocket == null) {
+        if (!connection) {
           return;
         }
 
         while (!bufferedLines.isEmpty()) {
           // Send the lines of the header that have been read.
-          serverSocket.getOutputStream().write(
+          ProxyThread.sharedInstance().getGatewaySocket().getOutputStream().write(
               modifyHttpHeaderLine(bufferedLines.remove(0)).getBytes());
         }
 
-        handleHttpMessage(clientSocket, serverSocket);
-        handleHttpMessage(serverSocket, clientSocket);
+        handleHttpMessage(clientSocket, ProxyThread.sharedInstance().getGatewaySocket());
+        handleHttpResponse(clientSocket);
       }
     } catch (IOException e) {
       try {
         clientSocket.close();
-        if (serverSocket != null) {
-          serverSocket.close();
-        }
       } catch (IOException e2) {
         // no op
       }
@@ -121,6 +136,10 @@ public class HttpRequestThread extends Thread {
     (new RawDataRelayThread(readSocket, writeSocket)).run();
   }
 
+  private void handleHttpResponse(Socket writeSocket) {
+
+  }
+
   /** Parses an HTTP header line to downgrade to HTTP/1.0 and Connection: close.
       @param line The line to modify.
       @return The modified line. */
@@ -137,7 +156,7 @@ public class HttpRequestThread extends Thread {
   /** Helper that returns a Socket for communication with a server specified by the host line or
       the first line in bufferedLines. Adds header lines it reads while looking for the host line
       to bufferedLines. Returns null if there is an error or the server is invalid. */
-  private Socket getServerFromHttpHeader(BufferedStreamReader reader, List<String> bufferedLines) {
+  private boolean beginRelayWithHttpHeader(BufferedStreamReader reader, List<String> bufferedLines) {
     String line;
     while ((line = reader.readLine()) != null) {
       bufferedLines.add(line);
@@ -154,7 +173,7 @@ public class HttpRequestThread extends Thread {
     }
 
     if (bufferedLines.isEmpty()) {
-      return null;
+      return false;
     }
 
     String[] alternateComponents = bufferedLines.get(0).toLowerCase().split(" ")[1].split(":");
@@ -186,20 +205,31 @@ public class HttpRequestThread extends Thread {
       }
     }
 
-    Socket resultSocket = null;
+    final byte[] body = (ip + ":" + iport + "\0").getBytes();
+    if (14 + body.length > 512) {
+      // error
+    }
+    byte[] message = new byte[512];
+    message[0] = (byte) (ProxyThread.sharedInstance().circuitId >> 8);
+    message[1] = (byte) ProxyThread.sharedInstance().circuitId;
+    message[2] = 3; // relay
+    message[3] = (byte) (streamId >> 8);
+    message[4] = (byte) streamId;
+    message[5] = 0;
+    message[6] = 0;
+    message[11] = (byte) (body.length >> 8);
+    message[12] = (byte) body.length;
+    message[12] = 1; // begin
+    System.arraycopy(body, 0, message, 13, body.length);
     try {
-      resultSocket = new Socket(ip, iport);
-      resultSocket.setSoTimeout(SO_TIMEOUT_MS);
-      return resultSocket;
+      ProxyThread.sharedInstance().getGatewaySocket().getOutputStream().write(message);
+      byte[] result = buf.poll(SO_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+      // TODO: handle timeout, stricter data integrity in check
+      return result[12] == 4; // connected
     } catch (IOException e) {
-      if (resultSocket != null) {
-        try {
-          resultSocket.close();
-        } catch (IOException e2) {
-          // no op
-        }
-      }
-      return null;
+      return false;
+    } catch (InterruptedException e) {
+      return false;
     }
   }
 }

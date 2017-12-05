@@ -4,10 +4,12 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.Arrays;
+import java.util.Set;
 
 /** Runs a command-line interface that allows the user to act as the client of an
     agent via a simple command line interface. The agent communicates with
@@ -39,6 +41,8 @@ public class RegAgentThread extends Thread {
   private int agentId;
   /// The port of the service to register.
   private int iport;
+  /// The Service to keep registered (represents the Tor node).
+  private Service service;
 
   public RegAgentThread(int groupNo, int instanceNo, int agentId, int iport) {
     this.groupNo = groupNo;

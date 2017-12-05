@@ -12,7 +12,7 @@ public class CircuitInitThread extends Thread {
 	private RouterInfo routerInfo;
 	private static final int TIMEOUT = 10000;
 
-    public RouterThread(RouterInfo routerInfo, RegAgentThread regThread) {
+    public CircuitInitThread(RouterInfo routerInfo, RegAgentThread regThread) {
     	this.regThread = regThread;
     	this.routerInfo = routerInfo;
     }
@@ -68,7 +68,7 @@ public class CircuitInitThread extends Thread {
 
 			// send messaages to make circuit
 			try {
-				// TCP connection has been established to first hop router. 
+				// TCP connection has been established to first hop router.
 				int gatewayCircuitID = routerInfo.getNextOddCircuitID(nextAgentID);
 				RouterEntry gatewayEntry = new RouterEntry(gatewaySocket, gatewatCircuitID);
 
@@ -78,7 +78,7 @@ public class CircuitInitThread extends Thread {
 				// create output/input streams
 				output = new DataOutputStream(gatewaySocket.getOutputStream());
 				input = new DataInputStream(gatewaySocket.getInputStream());
-			
+
 				// try sending open message to first hop router
 				byte[] open = TorCommandManager.makeOpen(thisAgentID, nextAgentID);
 				output.write(open);
@@ -102,7 +102,7 @@ public class CircuitInitThread extends Thread {
 				// see if created was received
 				byte[] response = new byte[TorCommandManager.CELLSIZE];
 				input.read(response);
-				if (TorCommandManager.getCommand(response) != TorCommand.CREATED 
+				if (TorCommandManager.getCommand(response) != TorCommand.CREATED
 						|| TorCommandManager.getCircuitID(response) != gatewayCircuitID) {
 					throw new IOException();
 				}
@@ -123,7 +123,7 @@ public class CircuitInitThread extends Thread {
 					try {
 						byte[] response = new byte[TorCommandManager.CELLSIZE];
 						input.read(response);
-						if (TorCommandManager.getRelayCommand(response) != RelayCommand.EXTENDED 
+						if (TorCommandManager.getRelayCommand(response) != RelayCommand.EXTENDED
 								|| TorCommandManager.getCircuitID(reponse) != gatewayCircuitID) {
 							throw new IOException();
 						}
@@ -153,34 +153,51 @@ public class CircuitInitThread extends Thread {
 				nextAgentID = firstStop.getAgentID();
 				continue;
 			}
-		} 
+		}
 		return true;
 	}
 
+<<<<<<< HEAD
 	public static silentCloseSocket(Socket socket) {
 		if (socket == null) {
 			return;
 		} try {
 			socket.close();
+=======
+	public static void silentCloseSocket(Socket s) {
+		if (s == null) {
+			return;
+		}
+
+		try {
+			s.close();
+>>>>>>> 8c556abcbd9dfdc4a192cf29dda4c552a72efe65
 		} catch (IOException e) {
+			// no op
 		}
 	}
 
-	public static siletCloseOutput(DataOutputStream output) {
+	public static void siletCloseOutput(DataOutputStream output) {
 		if (output == null) {
 			return;
-		} try {
+		}
+
+		try {
 			output.close();
 		} catch (IOException e) {
+			// no op
 		}
 	}
 
-	public static siletCloseInput(DataOutputStream input) {
+	public static void siletCloseInput(DataOutputStream input) {
 		if (input == null) {
 			return;
-		} try {
+		}
+
+		try {
 			input.close();
 		} catch (IOException e) {
+			// no op
 		}
 	}
 

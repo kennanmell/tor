@@ -45,7 +45,7 @@ public class CircuitInitThread extends Thread {
 		// keep looping until we have established circuit or we have run out of possible services
 		while (true) {
 			// check if we already have a TCP connection
-	        if (routerInfo.getSocket(nextAgentID) != null) {
+	        if (routerInfo.getRouterSocket(nextAgentID) != null) {
 	        	gatewaySocket = routerInfo.getSocket(nextAgentID);
 	        } else {
 				// Keep asking registration thread for new routers until we can make a connection
@@ -157,10 +157,12 @@ public class CircuitInitThread extends Thread {
 		return true;
 	}
 
-	public static silentCloseSocket(Socket socket) {
+	public static void silentCloseSocket(Socket socket) {
 		if (socket == null) {
 			return;
-		} try {
+		} 
+
+		try {
 			socket.close();
 		} catch (IOException e) {
 			// no op

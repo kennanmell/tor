@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingDeque
 
-// class to hold router information, passed on to proxy and router threads from tor main.
+// class to hold router information, passed on to WebServer and router threads from tor main.
 // Encapsulates the state of the router and connection information.
 public class RouterInfo {
 	private final int groupNumber;
@@ -20,7 +20,7 @@ public class RouterInfo {
 	private Map<Integer, Integer> nextOddCircuitID;
 	// router ID's to sockets (Tor router side)
 	private Map<Integer, Socket> agentIDToSocket;
-    // stream ID's to sockets (Proxy browser/browser side)
+    // stream ID's to sockets (End of circuit, Tor to web servers)
     private Map<Integer, Socket> streamIDToSocket;
 	// routing table entries of (agentID, circuitID) tuples
 	private Map<RouterEntry, RouterEntry> routingTable;
@@ -32,8 +32,7 @@ public class RouterInfo {
     	this.instanceNumber = instanceNumber;
     	this.agentID = (groupNumber << 16) | instanceNumber;
     	this.port = port;
-    	this.nextStreamID = 1;
-    	this.selfEntry = null;
+    	this.gatewayEntry = null;
     	this.nextEvenCircuitID = new HashMap<Integer, Integer>();
     	this.nextOddCircuitID = new HashMap<Integer, Integer>();
     	this.agentIDToSocket = new HashMap<Integer, Socket>();
@@ -84,7 +83,7 @@ public class RouterInfo {
     		nextEvenCircuitID.put(agentID, 2);
     	}
     	int ret = nextEvenCircuitID.get(agentID);
-    	if (nextEvenCircuitID.get(agentID) == Integer.MAX_VALUE - 1) {
+    	if (nextEvenCircuitID.get(agentID) == 65534) {
     		nextEvenCircuitID.put(agentID, 0);
     	}
     	nextEvenCircuitID.put(agentID, nextEvenCircuitID.get(agentID) + 2);
@@ -97,11 +96,15 @@ public class RouterInfo {
     		nextOddCircuitID.put(agentID, 1);
     	}
     	int ret = nextOddCircuitID.get(agentID);
-    	if (nextEvenCircuitID.get(agentID) == Integer.MAX_VALUE) {
+    	if (nextEvenCircuitID.get(agentID) == 65535) {
     		nextEvenCircuitID.put(agentID, -1);
     	}
     	nextOddCircuitID.put(agentID, nextEvenCircuitID.get(agentID) + 2);
     	return ret;
+    }
+
+    public synchronized boolean containsRouterSocket(int agentID) {
+        return agentIDToSocket.containsKet(agentID);
     }
 
     // Returns the socket associated with the agentID. Returns null if there was no mapping
@@ -126,24 +129,28 @@ public class RouterInfo {
     }
 
     // Returns the socket associated with the agentID. Returns null if there was no mapping
-    public synchronized Socket getProxySocket(int streamID) {
+    public synchronized Socket getWebServerSocket(int streamID) {
         return streamIDToSocket.get(streamID);
     }
 
     // Adds the (agentID, socket) to the map and returns the previous socket, or null if there
     // was no mapping for the key.
-    public synchronized Socket addProxySocket(int streamID, Socket socket) {
+    public synchronized Socket addWebServerSocket(int streamID, Socket socket) {
         return streamIDToSocket.put(streamID, socket);
     }
 
     // Removes the agentID (and its corresponding socket) from this map. This method does nothing if the key is not in the map.
-    public synchronized Socket removeProxySocket(int streamID) {
+    public synchronized Socket removeWebServerSocket(int streamID) {
         return streamIDToSocket.remove(streamID);
     }
 
     // Returns the number of connected agents.
     public synchronized int numRequests() {
         return streamIDToSocket.size();
+    }
+
+    public synchronized boolean containsEntry(RouterEntry entry) {
+        return routingTable.containsKey(entry);
     }
 
     // Returns the next RouterEntry (socket, circuitID) to get to the next hop.

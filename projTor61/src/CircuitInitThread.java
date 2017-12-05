@@ -17,6 +17,7 @@ public class CircuitInitThread extends Thread {
     	this.routerInfo = routerInfo;
     }
 
+    @Override
     public void run() {
     	while (true) {
     		if (resetCircuit()) {
@@ -50,11 +51,12 @@ public class CircuitInitThread extends Thread {
 				// Keep asking registration thread for new routers until we can make a connection
 				while (gatewaySocket == null) {
 					if (services.size() == 0) {
+						// register self again		
 						return false;
 					}
 					try {
 			    		gatewaySocket = new Socket(firstStop.ip, firstStop.port);
-			    		routerInfo.addSocket(nextAgentID, gatewaySocket);
+			    		routerInfo.addRouterSocket(nextAgentID, gatewaySocket);
 			    	} catch (IOException e) {
 			    		gatewaySocket = null;
 			    		services.remove(firstStop);
@@ -128,8 +130,9 @@ public class CircuitInitThread extends Thread {
 					} catch (IOException e) {
 						services.remove(currStop);
 						if (services.size() == 0) {
-							routerInfo.removeSocket(nextAgentID, gatewaySocket);
+							routerInfo.removeRouterSocket(nextAgentID, gatewaySocket);
 							closeHandling(gatewaySocket, output, input);
+							// register self
 							return false;
 						}
 						continue;
@@ -138,11 +141,12 @@ public class CircuitInitThread extends Thread {
 				}
 				break;
 			} catch (IOException e) {
-				routerInfo.removeSocket(nextAgentID, gatewaySocket);
+				routerInfo.removeRouterSocket(nextAgentID, gatewaySocket);
 				closeHandling(gatewaySocket, output, input);
 				gatewaySocket = null;
 				services.remove(firstStop);
 				if (services.size() == 0) {
+					// register self
 					return false;
 				}
 				firstStop = getRandomService(services);
@@ -153,13 +157,11 @@ public class CircuitInitThread extends Thread {
 		return true;
 	}
 
-	public static void silentCloseSocket(Socket s) {
-		if (s == null) {
+	public static silentCloseSocket(Socket socket) {
+		if (socket == null) {
 			return;
-		}
-
-		try {
-			s.close();
+		} try {
+			socket.close();
 		} catch (IOException e) {
 			// no op
 		}
@@ -189,8 +191,8 @@ public class CircuitInitThread extends Thread {
 		}
 	}
 
-	public static boolean closeHandling(Socket s, DataOutputStream output, DataInputStream input) {
-		silentCloseSocket(s);
+	public static boolean closeHandling(Socket socket, DataOutputStream output, DataInputStream input) {
+		silentCloseSocket(socket);
 		siletCloseOutput(output);
 		siletCloseInput(input);
         routerInfo.setGatewayEntry(null);

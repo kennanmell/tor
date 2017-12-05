@@ -55,10 +55,10 @@ public class TorMain {
     regThread.start();
     routerInfo = new RouterInfo(groupNo, instanceNo, tempPort);
     // Thread for initializing self circuit
-    CircuitInitThread circuitInitThread = new CircuitInitThread(this.routerInfo, this.regThread);
+    CircuitInitThread circuitInitThread = new CircuitInitThread(routerInfo, regThread);
     circuitInitThread.start();
     // Thread for handling Tor side requests
-    RouterThread routerThread = new RouterThread(routerInfo, regThread);
+    RouterThread routerThread = new RouterThread(routerInfo);
     routerThread.start();
 
     // circuit needs to be initialized with gatewayentry in routerInfo set for proxy thread to send on the self circuit

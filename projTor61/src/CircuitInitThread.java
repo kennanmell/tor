@@ -46,7 +46,7 @@ public class CircuitInitThread extends Thread {
 		while (true) {
 			// check if we already have a TCP connection
 	        if (routerInfo.getRouterSocket(nextAgentID) != null) {
-	        	gatewaySocket = routerInfo.getSocket(nextAgentID);
+	        	gatewaySocket = routerInfo.getRouterSocket(nextAgentID);
 	        } else {
 				// Keep asking registration thread for new routers until we can make a connection
 				while (gatewaySocket == null) {
@@ -169,7 +169,7 @@ public class CircuitInitThread extends Thread {
 		}
 	}
 
-	public static void siletCloseOutput(DataOutputStream output) {
+	public static void silentCloseOutput(DataOutputStream output) {
 		if (output == null) {
 			return;
 		}
@@ -181,7 +181,7 @@ public class CircuitInitThread extends Thread {
 		}
 	}
 
-	public static void siletCloseInput(DataOutputStream input) {
+	public static void silentCloseInput(DataOutputStream input) {
 		if (input == null) {
 			return;
 		}
@@ -195,8 +195,8 @@ public class CircuitInitThread extends Thread {
 
 	public static boolean closeHandling(Socket socket, DataOutputStream output, DataInputStream input) {
 		silentCloseSocket(socket);
-		siletCloseOutput(output);
-		siletCloseInput(input);
+		silentCloseOutput(output);
+		silentCloseInput(input);
         routerInfo.setGatewayEntry(null);
         return false;
 	}

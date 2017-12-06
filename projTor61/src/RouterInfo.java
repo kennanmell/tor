@@ -12,12 +12,15 @@ public class RouterInfo {
 	private final int instanceNumber;
 	private final int agentID;
 	private final int port;
-
 	// entry containing circuit ID and socket for own circuit
 	private RouterEntry gatewayEntry;
 	// router ID to next available circuit ID
 	private Map<Integer, Integer> nextEvenCircuitID;
 	private Map<Integer, Integer> nextOddCircuitID;
+
+
+
+
 	// router ID's to sockets (Tor router side)
 	private Map<Integer, Socket> agentIDToSocket;
     // stream ID's to sockets (End of circuit, Tor to web servers)
@@ -106,7 +109,7 @@ public class RouterInfo {
     }
 
     public synchronized boolean containsRouterSocket(int agentID) {
-        return agentIDToSocket.containsKet(agentID);
+        return agentIDToSocket.containsKey(agentID);
     }
 
     // Returns the socket associated with the agentID. Returns null if there was no mapping

@@ -8,11 +8,16 @@ public class RouterSocketReader extends Thread {
 	private RouterInfo routerInfo;
 	private Socket routerSocket;
 	private boolean addedMapping;
+	// local router table from circuit ID to buffer
+	private Map<Integer, LinkedBlockingDeque<byte[]>> circuitIDToBuffer;
+	// stores outstanding server socket connections
+	private Map<TerminalEntry, LinkedBlockingDeque<byte[]>> terminalEntryToBuffer;
 
 	public RouterSocketReader(Socket routerSocket, RouterInfo routerInfo) {
 		this.routerSocket = routerSocket;
 		this.routerInfo = routerInfo; 
 		this.addedMapping = false;
+		this.circuitIDToBuffer = new HashMap<Integer, LinkedBlockingDeque<byte[]>>();
 	}
 
     @Override
@@ -51,33 +56,124 @@ public class RouterSocketReader extends Thread {
 				return;
 			}
 
+			// add socket to agentiD->socket map
+			routerInfo.addRouterSocket(openerID, routerSocket);
+			addedMapping = true;
+
 			// send opened
 			byte[] response = TorCommandManager.makeOpened(openerID, openedID);
 			output.write(response);
 
-			// add agentID -> TCP connection mapping
-			routerInfo.addRouterSocket(openerID, routerSocket);
-			addedMapping = true;
-
-			// add buffer for TCP Router Socket
+			// Create buffer that and thread that will read buffer and send back to this Router Socket
 			BlockingQueue<byte[]> torBuffer = new LinkedBlockingDeque<byte[]>();
-			routerInfo.addTorBuffer(openerID, torBuffer);
+			(new RouterBufferReader(routerSocket, torBuffer)).start();
 
-			// start buffer reader thread
-			(new RouterBufferReader(routerInfo, torBuffer)).start();
+			// read incoming tor cell.
+			// on create, 
+			// if receive relay, check (routerSocket, circuitID). if present, put on buffer (reader thread checks for errors)
+			// Intented recipient if (couterSocket, circuitID) was not found. 
+			// On begin, get streamID/circuitID, make TCP socket connection, make buffer, put in (circuitID, streamID) -> buffer map
+			// 
 
-			// keep reading from Tor Router socket, write to either Tor Buffer or Webserver Buffer
+			// start another bufferReader thread that has socket
+
+			//put in (circuitID, streamID) map
+			// 
+
+
+			// on data, lookup socket associated with (stream, circuitID)
+
 			while (true) {
 				byte[] message = new byte[512];
 				int res = input.read(message);
 				if (res == -1) {
+					return;
+				}
+				int circuitID = TorCommandManager.getCircuitID(message);
+				if (TorCommandManager.getCommand(message) == TorCommand.CREATE) {
+					// add to map of circuitID to buffer, null value
+					if (circuitIDToBuffer.containsKey(circuitID)) {
+						torBuffer.add(TorCommandManager.makeCreatedFailed(circuitID));
+					} else {
+						circuitIDToBuffer.put(circuitID, null);
+						torBuffer.add(TorCommandManager.makeCreated(circuitID));
+					}
+				} else if (TorCommandManager.getCommand(message) == TorCommand.RELAY) {
+					RelayCommand relayCmd = TorCommandManager.getRelayCommand(message);
+					int streamID = TorCommandManager.getStreamID(message);
+					switch(relayCmd) {
+						case RelayCommand.BEGIN:
+							// check if socket already exists?
+							String[] address = TorCommandManager.getBody(message).toString().trim().split(":");
+							String ip = address[0];
+							int port = Integer.parseInt(address[1]);
 
+							// web server socket
+							Socket terminalSocket = new Socket(ip, port);
+							BlockingQueue<byte[]> terminalBuffer = new LinkedBlockingDeque<byte[]>();
+							
+							// add terminal entry to map (circuitID, streamID) -> Terminal Buffer
+							TerminalEntry terminalEntry = new TerminalEntry(circuitID, streamID);
+							TerminalEntryToBuffer.put(terminalEntry, terminalBuffer);
+
+							// start new socket reader thread
+							(new TerminalBufferReader(terminalSocket, terminalBuffer)).start();
+							(new TerminalSocketReader(terminalSocket, torBuffer)).start();
+
+
+
+							// make a new Terminal Reader thread
+
+
+
+							new TerminalSocketReader()
+						case RelayCommand.DATA:
+							byte[] data = TorCommandManager.getBody(message);
+							TerminalEntryToBuffer.get(new TerminalEntry(circuitID, streamID)).add(data);
+
+
+
+
+
+					}
 				}
 			}
 
+				RouterEntry self = new RouterEntry(routerSocket, )
+			routerInfo.addEntry(   , null)
+
+		    // read second message
+			message = new byte[TorCommandManager.CELLSIZE];
+			input.read(message);
+
+			// check if message is create
+			if (TorCommandManager.getCommand(message) != TorCommand.CREATE) {
+				byte[] response = TorCommandManager.makeOpenFailed(openerID, openedID);
+				output.write(response);
+				silentClose(routerSocket, openerID, input, output);
+				return;
+			}
+
+			// get prev entry for router table
+			int circuitID = TorCommandManager.getCircuitID(message);
+			RouterEntry prevEntry = new RouterEntry(routerSocket, circuitID);
+
+			// check if routing table already has circuitID
+			if (routerInfo.containsEntry(prevEntry)) {
+				byte[] response = TorCommandManager.makeCreatedFailed(circuitID);
+				output.write(response);
+				silentClose(routerSocket, openerID, input, output);
+				return;
+			}
+
+			// created received successfully
+			// send created
+			byte[] response = TorCommandManager.makeCreated(circuitID);
+			output.write(response);
 
 
-			// 
+
+			
 
 
 

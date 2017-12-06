@@ -18,6 +18,15 @@ import java.util.concurrent.TimeUnit;
 //         BEGIN failed or timeout:
 //            close client socket, done
 
+// OTHER END:
+//     Use stream id to demultiplex and send to appropriate server
+//     -how to multiplex circuits on TCP connections?
+//     Routing to next tor cell -> control cell, use circuit number
+//     Routing to web server -> relay cell, use stream number
+
+/*
+// TODO: make sure proxy closes all connections
+
 // Other thread:
 // Read from tor socket RouterEntry.getSocket() gatewayEntry
 // Write to buffer associated with stream id (LinkedBlockingQueue)

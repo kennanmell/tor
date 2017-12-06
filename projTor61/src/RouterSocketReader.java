@@ -1,4 +1,6 @@
-
+// thread that reads from tor socket and either puts in tor buffer or 
+// web server buffer 
+// browser to tor socket write directly
 public class RouterSocketReader extends Thread {
 	// reads from tor sockets and puts message into buffer. spawns a buffer reader thread to write data to socket? or have a buffer reader waiting at the buffer
 	// spawn thread
@@ -6,7 +8,7 @@ public class RouterSocketReader extends Thread {
 	private RouterInfo routerInfo;
 	private Socket routerSocket;
 	private boolean addedMapping;
-	
+
 	public RouterSocketReader(Socket routerSocket, RouterInfo routerInfo) {
 		this.routerSocket = routerSocket;
 		this.routerInfo = routerInfo; 
@@ -73,9 +75,24 @@ public class RouterSocketReader extends Thread {
 			int circuitID = TorCommandManager.getCircuitID(message);
 			RouterEntry prevEntry = new RouterEntry(routerSocket, circuitID);
 
+			// check if routing table already has circuitID
+			if (routerInfo.containsEntry(prevEntry)) {
+				byte[] response = TorCommandManager.makeCreatedFailed(circuitID);
+				output.write(response);
+				silentClose(routerSocket, openerID, input, output);
+				return;
+			}
+
+			// created received successfully
 			// send created
 			byte[] response = TorCommandManager.makeCreated(circuitID);
 			output.write(response);
+
+			// 
+
+
+
+
 
 
 

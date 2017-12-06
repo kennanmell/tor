@@ -3,7 +3,7 @@ package src;
 import java.net.Socket;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.LinkedBlockingDeque;
 
 // class to hold router information, passed on to WebServer and router threads from tor main.
 // Encapsulates the state of the router and connection information.
@@ -26,6 +26,8 @@ public class RouterInfo {
 	private Map<RouterEntry, RouterEntry> routingTable;
     // Stores buffers for communication between router and tor side
     private Map<Integer, LinkedBlockingDeque<byte[]>> agentIDToBuffer;
+    // Stores buffers for web servers
+    private Map<Integer, LinkedBlockingDeque<byte[]>> streamIDToBuffer;
 
     public RouterInfo(int groupNumber, int instanceNumber, int port) {
     	this.groupNumber = groupNumber;

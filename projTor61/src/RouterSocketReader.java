@@ -51,42 +51,31 @@ public class RouterSocketReader extends Thread {
 				return;
 			}
 
-			// add agentID -> TCP connection mapping
-			routerInfo.addRouterSocket(openerID, routerSocket);
-			addedMapping = true;
-
 			// send opened
 			byte[] response = TorCommandManager.makeOpened(openerID, openedID);
 			output.write(response);
 
-            // read second message
-			message = new byte[TorCommandManager.CELLSIZE];
-			input.read(message);
+			// add agentID -> TCP connection mapping
+			routerInfo.addRouterSocket(openerID, routerSocket);
+			addedMapping = true;
 
-			// check if message is create
-			if (TorCommandManager.getCommand(message) != TorCommand.CREATE) {
-				byte[] response = TorCommandManager.makeOpenFailed(openerID, openedID);
-				output.write(response);
-				silentClose(routerSocket, openerID, input, output);
-				return;
+			// add buffer for TCP Router Socket
+			BlockingQueue<byte[]> torBuffer = new LinkedBlockingDeque<byte[]>();
+			routerInfo.addTorBuffer(openerID, torBuffer);
+
+			// start buffer reader thread
+			(new RouterBufferReader(routerInfo, torBuffer)).start();
+			
+			// keep reading from Tor Router socket, write to either Tor Buffer or Webserver Buffer
+			while (true) {
+				byte[] message = new byte[512];
+				int res = input.read(message);
+				if (res == -1) {
+					
+				}
 			}
 
-			// get prev entry for router table
-			int circuitID = TorCommandManager.getCircuitID(message);
-			RouterEntry prevEntry = new RouterEntry(routerSocket, circuitID);
 
-			// check if routing table already has circuitID
-			if (routerInfo.containsEntry(prevEntry)) {
-				byte[] response = TorCommandManager.makeCreatedFailed(circuitID);
-				output.write(response);
-				silentClose(routerSocket, openerID, input, output);
-				return;
-			}
-
-			// created received successfully
-			// send created
-			byte[] response = TorCommandManager.makeCreated(circuitID);
-			output.write(response);
 
 			// 
 
@@ -104,7 +93,7 @@ public class RouterSocketReader extends Thread {
 			silentClose(routerSocket, openerID, input, output);
 			return;
 		}
-		BlockingQueue<byte[]> torBuffer = new LinkedBlockingDeque<byte[]>();
+		
 	}
 
 	public static void silentClose(DataInputStream input) {

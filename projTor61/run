@@ -4,6 +4,7 @@ argOne=1
 argTwo=2
 argThree=3
 
+rm -r *.class
 javac src/regagent/*.java
 javac src/proxy/*.java
 javac -cp .:src:src/regagent:src/proxy src/*.java

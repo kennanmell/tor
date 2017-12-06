@@ -107,8 +107,8 @@ public class HttpRequestThread extends Thread {
 
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
         clientSocket.setSoTimeout(0);
-        (new RawDataRelayThread(
-            ProxyThread.sharedInstance().getGatewaySocket(), clientSocket, streamId)).start();
+        (new RawDataRelayThread(ProxyThread.sharedInstance().getGatewaySocket(),
+            clientSocket, streamId, ProxyThread.sharedInstance().circuitId)).start();
         (new TorBufferRelayThread(clientSocket, buf, streamId)).run();
         SharedDataDistributionThread.sharedInstance().removeStream(this.streamId);
       } else {
@@ -177,7 +177,8 @@ public class HttpRequestThread extends Thread {
       }
     }
 
-    (new RawDataRelayThread(readSocket, writeSocket, streamId)).run();
+    (new RawDataRelayThread(
+        readSocket, writeSocket, streamId, ProxyThread.sharedInstance().circuitId)).run();
   }
 
   private void handleHttpResponse(Socket writeSocket) {

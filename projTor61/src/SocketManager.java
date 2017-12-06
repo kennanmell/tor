@@ -11,7 +11,7 @@ public class SocketManager {
   // indicating whether or not this node created the Socket.
   private static Map<String, AddressToWriteBufferTuple> addressToSocketWriteBuffer =
       new HashMap<>();
-  private static Map<Hop, BlockingQueue<byte[]>> extendBuffers =
+  public static Map<Socket, BlockingQueue<byte[]>> extendBuffers =
       new HashMap<>();
   // For getting circuit ids.
   private static int currentOddId = 3;
@@ -24,6 +24,7 @@ public class SocketManager {
       String address = socket.getInetAddress().toString() + ":" + socket.getPort();
       WriteBufferToSocketThread t = new WriteBufferToSocketThread(socket);
       t.start();
+      (new DirectedHopHandlerThread(socket)).start();
       addressToSocketWriteBuffer.put(address, new AddressToWriteBufferTuple(t, initiated));
     }
   }
@@ -43,14 +44,20 @@ public class SocketManager {
     }
   }
 
-  public static BlockingQueue<byte[]> getWriteBuffer(Socket socket) {
-    synchronized(addressToSocketWriteBuffer) {
+  public static void writeToSocket(Socket socket, byte[] data) {
+    synchronized (addressToSocketWriteBuffer) {
       String address = socket.getInetAddress().toString() + ":" + socket.getPort();
       if (addressToSocketWriteBuffer.containsKey(address)) {
-        return addressToSocketWriteBuffer.get(address).t.buf;
-      } else {
-        return null;
+        addressToSocketWriteBuffer.get(address).t.buf.add(data);
       }
+    }
+  }
+
+  public static Socket getSocketWithStringAddress(String address) {
+    if (addressToSocketWriteBuffer.containsKey(address)) {
+      return addressToSocketWriteBuffer.get(address).t.socket;
+    } else {
+      return null;
     }
   }
 
@@ -91,25 +98,6 @@ public class SocketManager {
         return currentEvenId;
       }
     }
-  }
-
-  // MARK: extend buffers
-  public static BlockingQueue<byte[]> getBufferForCircuit(Socket s, int circuitId) {
-      return extendBuffers.get(new Hop(s, circuitId));
-  }
-
-  public static void setBufferForCircuit(Socket s, int circuitId, BlockingQueue<byte[]> buf) {
-    Hop key = new Hop(s, circuitId);
-    if (extendBuffers.containsKey(key)) {
-      // TODO: need better handling?
-      throw new IllegalArgumentException();
-    }
-
-    extendBuffers.put(key, buf);
-  }
-
-  public static void removeBufferForCircuit(Socket s, int circuitId) {
-    extendBuffers.remove(new Hop(s, circuitId));
   }
 
   private static class AddressToWriteBufferTuple {

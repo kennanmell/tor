@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Hop {
-  public static Map<Hop, Hop> hopTable = new HashMap<>();
-
   public final Socket s;
   public final int circuitId;
 

@@ -25,7 +25,7 @@ public class RouterSocketReader extends Thread {
 		try {
 			// setup input and output
 			input = new DataInputStream(routerSocket.getInputStream());
-			output = new DataOutputStream(gatewaySocket.getOutputStream());
+			output = new DataOutputStream(routerSocket.getOutputStream());
 			routerSocket.setSoTimeout(TIMEOUT);
 			
 			// read first message
@@ -65,13 +65,13 @@ public class RouterSocketReader extends Thread {
 
 			// start buffer reader thread
 			(new RouterBufferReader(routerInfo, torBuffer)).start();
-			
+
 			// keep reading from Tor Router socket, write to either Tor Buffer or Webserver Buffer
 			while (true) {
 				byte[] message = new byte[512];
 				int res = input.read(message);
 				if (res == -1) {
-					
+
 				}
 			}
 

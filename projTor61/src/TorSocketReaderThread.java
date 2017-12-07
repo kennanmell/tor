@@ -62,6 +62,7 @@ public class TorSocketReaderThread extends Thread {
       @requires Nothing else will read from `readSocket` as long as this thread is running. */
   public TorSocketReaderThread(Socket readSocket) {
     this.readSocket = readSocket;
+    readSocket.setSoTimeout(0);
     this.responseRelayForStream = new HashMap<>();
   }
 
@@ -248,7 +249,11 @@ public class TorSocketReaderThread extends Thread {
       responseRelayForStream.get(key).kill();
     }
     // TODO: kill any open relay extend thread
-    SocketManager.removeSocket(readSocket);
+    try {
+      SocketManager.removeSocket(readSocket);
+    } catch (NullPointerException e) {
+      // no op; closing anyway
+    }
     TorSocketReaderThread.threadCount--;
     System.out.println(this + ": killed thread");
     System.out.println("thread count: " + TorSocketReaderThread.threadCount);

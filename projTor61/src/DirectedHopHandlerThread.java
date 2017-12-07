@@ -179,6 +179,12 @@ public class DirectedHopHandlerThread extends Thread {
               //(new RelayExtendThread(message)).start();
               break;
 
+              case EXTEND:
+              message[11] = cell[11];
+              message[12] = cell[12];
+              (new RelayExtendThread(message)).start();
+              break;
+
               default: // no op
             }
             break;

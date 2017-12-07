@@ -139,15 +139,29 @@ public class TorMain {
 
         // Read relay extended.
         byte[] extendResponse = new byte[512];
-        if (gatewaySocket.getInputStream().read(extendResponse) != 512 ||
-            extendResponse[2] != TorCommand.RELAY.toByte() ||
-            extendResponse[13] != RelayCommand.EXTENDED.toByte()) {
-          System.out.println("Main: extend failed 1");
-          System.out.println(Arrays.toString(extendResponse));
-          candidates.remove(extendServiceCandidate);
-        } else {
-          System.out.println("Main: extend succeeded");
-          extendSuccesses++;
+        while (true) {
+          if (gatewaySocket.getInputStream().read(extendResponse) != 512) {
+            System.out.println("Main: extend failed 1");
+            System.out.println(Arrays.toString(extendResponse));
+            candidates.remove(extendServiceCandidate);
+            break;
+          } else {
+            if (extendResponse[2] == TorCommand.RELAY.toByte() &&
+                extendResponse[13] == RelayCommand.EXTENDED.toByte()) {
+              System.out.println("Main: extend succeeded");
+              extendSuccesses++;
+              break;
+            } else if (extendResponse[2] != TorCommand.RELAY.toByte() ||
+                  extendResponse[13] != RelayCommand.EXTEND_FAILED.toByte()) {
+              // Probably intercepted self-loop communication, try again.
+              gatewaySocket.getOutputStream().write(extendResponse);
+            } else {
+              System.out.println("Main: extend failed 1");
+              System.out.println(Arrays.toString(extendResponse));
+              candidates.remove(extendServiceCandidate);
+              break;
+            }
+          }
         }
       } catch (IOException e) {
         System.out.println("Main: extend failed");

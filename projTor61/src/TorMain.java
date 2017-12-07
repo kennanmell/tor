@@ -63,6 +63,7 @@ public class TorMain {
   /** Creates the local circuit for routing browser proxy traffic on this tor node. */
   private static Socket makeLocalCircuit(List<Service> candidates) {
     System.out.println("Main agent id: " + TorMain.agentId);
+    System.out.println("Main: extend candidates = " + candidates);
     Random r = new Random();
     Socket gatewaySocket = null;
     while (gatewaySocket == null) {

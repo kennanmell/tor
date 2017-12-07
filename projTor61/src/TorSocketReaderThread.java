@@ -344,6 +344,13 @@ public class TorSocketReaderThread extends Thread {
         newAgentId |= (extendCell[i] & 0xFF) << ((bodyLength + 13 - i) * 8);
       }
 
+      if (newAgentId == TorMain.agentId) {
+        System.out.println("Relay extend: self loop");
+        message[13] = RelayCommand.EXTENDED.toByte();
+        SocketManager.writeToSocket(readSocket, message);
+        return;
+      }
+
       // Get/create socket to extend the hop to.
       Socket nextHopSocket = SocketManager.socketForAgentId(newAgentId);
       if (nextHopSocket == null) {

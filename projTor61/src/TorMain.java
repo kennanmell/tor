@@ -151,10 +151,10 @@ public class TorMain {
               System.out.println("Main: extend succeeded");
               extendSuccesses++;
               break;
-            } else if (extendResponse[2] != TorCommand.RELAY.toByte() ||
-                  extendResponse[13] != RelayCommand.EXTEND_FAILED.toByte()) {
-              // Probably intercepted self-loop communication, try again.
-              gatewaySocket.getOutputStream().write(extendResponse);
+            //} else if (extendResponse[2] != TorCommand.RELAY.toByte() ||
+            //      extendResponse[13] != RelayCommand.EXTEND_FAILED.toByte()) {
+            //  // Probably intercepted self-loop communication, try again.
+            //  gatewaySocket.getOutputStream().write(extendResponse);
             } else {
               System.out.println("Main: extend failed 1");
               System.out.println(Arrays.toString(extendResponse));

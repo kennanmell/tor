@@ -342,7 +342,7 @@ public class TorSocketReaderThread extends Thread {
         System.out.println("Relay Extend: opening new socket");
         try {
           nextHopSocket = new Socket(ip, iport);
-        } catch (IOException e) {
+        } catch (Exception e) {
           System.out.println(this.toString() + ": failed to open next hop socket 1");
           e.printStackTrace();
           System.out.println(ip);

@@ -20,6 +20,7 @@ public class TorSocketReaderThread extends Thread {
     public final Socket s;
     /// The circuit id associated with this `Hop`.
     public final int circuitId;
+    private static int threadCount = 0;
 
     /** Sole constructor.
         @param s The `Socket` associated with this `Hop`.
@@ -67,6 +68,8 @@ public class TorSocketReaderThread extends Thread {
   @Override
   public void run() {
     System.out.println("started DHH thread " + this.toString());
+    threadCount++;
+    System.out.println("thread count: " + threadCount);
     try {
       byte[] cell = new byte[512];
       if (!SocketManager.socketWasInitiated(readSocket)) {
@@ -246,7 +249,9 @@ public class TorSocketReaderThread extends Thread {
     }
     // TODO: kill any open relay extend thread
     SocketManager.removeSocket(readSocket);
+    threadCount--;
     System.out.println(this + ": killed thread");
+    System.out.println("thread count: " + threadCount);
   }
 
   /** Gets the `TorCommand` type for a tor cell. */

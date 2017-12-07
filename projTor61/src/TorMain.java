@@ -48,6 +48,7 @@ public class TorMain {
       @Override
       public void run() {
         System.out.println("running shutdown hook");
+        regThread.unregisterService();
         SocketManager.removeAllSockets();
       }
     });

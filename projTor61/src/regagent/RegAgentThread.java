@@ -108,12 +108,19 @@ public class RegAgentThread extends Thread {
     }
     final String serviceName = "Tor61Router-" + String.format("%04d", groupNo) + "-" +
         String.format("%04d", instanceNo);
-    Service service = new Service(localhostIp, iport, agentId, serviceName);
+    service = new Service(localhostIp, iport, agentId, serviceName);
     if (requestHandler.registerService(service)) {
       registrationRenewer.addService(service);
     } else {
       // TODO
     }
+  }
+
+  // Unregisters the service associated with the tor server.
+  public void unregisterService() {
+    requestHandler.unregisterService(service);
+    registrationRenewer.removeService(service);
+    System.out.println("unregistered service");
   }
 
   // Return all reported services available
@@ -126,9 +133,11 @@ public class RegAgentThread extends Thread {
     } catch (UnknownHostException e) {
       // TODO
     }
-    Service myService = new Service(localhostIp, iport, agentId, "Tor61Router-" + String.format("%04d", groupNo) + "-" +
-            String.format("%04d", instanceNo));
-    candidates.add(myService);
+    if (service == null) {
+      service = new Service(localhostIp, iport, agentId, "Tor61Router-" + String.format("%04d", groupNo) + "-" +
+              String.format("%04d", instanceNo));
+    }
+    candidates.add(service);
     return candidates;
   }
 }

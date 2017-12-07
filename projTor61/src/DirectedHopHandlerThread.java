@@ -75,13 +75,15 @@ public class DirectedHopHandlerThread extends Thread {
 
         if (!hopTable.containsKey(currentHop)) {
           // This thread doesn't have the circuit mapping, so it can only handle a create
-          // cell in this case.
+          // cell or relay extend cell in this case.
           System.out.println(this.toString() + ": hop table doesn't have hop");
           if (command == TorCommand.CREATE) {
             System.out.println(this.toString() + ": handling CREATE, sending CREATED");
             hopTable.put(currentHop, null);
             message[2] = TorCommand.CREATED.toByte();
             SocketManager.writeToSocket(readSocket, message);
+          } else if (command == TorCommand.RELAY && RelayCommand.fromByte(cell[13]) == RelayCommand.EXTEND) {
+            (new RelayExtendThread(message)).start();
           }
         } else if (hopTable.get(currentHop) != null) {
           // This thread has the mapping and it's not at the end of the circuit, so just relay
@@ -171,10 +173,10 @@ public class DirectedHopHandlerThread extends Thread {
                 responseRelayForStream.remove(relayId);
               }
 
-              case EXTEND:
-              message[11] = cell[11];
-              message[12] = cell[12];
-              (new RelayExtendThread(message)).start();
+              //case EXTEND:
+              //message[11] = cell[11];
+              //message[12] = cell[12];
+              //(new RelayExtendThread(message)).start();
               break;
 
               default: // no op

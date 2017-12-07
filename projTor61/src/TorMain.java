@@ -49,6 +49,7 @@ public class TorMain {
   private static Socket makeLocalCircuit(int serverPort) {
     List<Service> candidates = new ArrayList<>(); // TODO: get all registered services
     Random r = new Random();
+    List<Socket> openedSockets = new ArrayList<>();
 
     // START TEST CODE
     InetAddress localHostIp;
@@ -59,11 +60,18 @@ public class TorMain {
       return null;
     }
     candidates.add(new Service(localHostIp, serverPort, TorMain.agentId, ""));
+    InetAddress attuHostIp;
+    try {
+      attuHostIp = InetAddress.getByName("attu2.cs.washington.edu");
+    } catch (UnknownHostException e) {
+      System.out.println("Main: can't find attu");
+      return null;
+    }
+    candidates.add(new Service(attuHostIp, 40087, 393217, ""));
     // END TEST CODE
     int connected = 0;
     Socket result = null;
     while (connected < 3) {
-      boolean opened = false;
       Service nextHopService = candidates.get(r.nextInt(candidates.size()));
       Socket s = SocketManager.agentIdToSocket.get(nextHopService.data); // replace with actual agent id
       if (s == null) {
@@ -112,7 +120,7 @@ public class TorMain {
         }
 
         SocketManager.addSocket(s, true);
-        opened = true;
+        openedSockets.add(s);
         System.out.println("Main: OPENed new socket");
       }
 
@@ -195,12 +203,12 @@ public class TorMain {
       if (result == null) {
         result = s;
       }
-      if (opened) {
-        (new DirectedHopHandlerThread(s)).start();
-      }
       connected++;
     }
 
+    while (!openedSockets.isEmpty()) {
+      (new DirectedHopHandlerThread(openedSockets.remove(0))).start();
+    }
     return result;
   }
 }

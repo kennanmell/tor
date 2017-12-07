@@ -337,7 +337,7 @@ public class TorSocketReaderThread extends Thread {
         e.printStackTrace();
         // TODO: handle?
       }
-      final String ip = (new String(extendCell)).substring(14, colonSeparatorIndex);
+      final String ip = (new String(extendCell)).substring(15, colonSeparatorIndex);
 
       int newAgentId = 0;
       for (int i = endIndex + 1; i < 14 + bodyLength; i++) {
@@ -355,7 +355,7 @@ public class TorSocketReaderThread extends Thread {
       // Get/create socket to extend the hop to.
       Socket nextHopSocket = SocketManager.socketForAgentId(newAgentId);
       if (nextHopSocket == null) {
-        System.out.println("Relay Extend: opening new socket: " + ip + iport);
+        System.out.println("Relay Extend: opening new socket: " + ip + " " + iport);
         try {
           nextHopSocket = new Socket(ip, iport);
         } catch (IOException e) {

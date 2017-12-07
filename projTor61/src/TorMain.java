@@ -62,12 +62,14 @@ public class TorMain {
 
   /** Creates the local circuit for routing browser proxy traffic on this tor node. */
   private static Socket makeLocalCircuit(List<Service> candidates) {
+    System.out.println("Main agent id: " + TorMain.agentId);
     Random r = new Random();
     Socket gatewaySocket = null;
     while (gatewaySocket == null) {
       Service gatewayServiceCandidate = candidates.get(r.nextInt(candidates.size()));
       try {
         // Make socket.
+        System.out.println("Main: creating connection with " + gatewayServiceCandidate);
         gatewaySocket = new Socket(gatewayServiceCandidate.ip, gatewayServiceCandidate.iport);
         System.out.println(gatewaySocket);
 
@@ -120,6 +122,7 @@ public class TorMain {
     int extendSuccesses = 0;
     while (extendSuccesses < 2 && !candidates.isEmpty()) { // todo: can't have empty
       Service extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
+      System.out.println("Main: extending connection with " + extendServiceCandidate);
       try {
         // Send relay extend.
         byte[] ipStrBytes = (extendServiceCandidate.ip.toString() +

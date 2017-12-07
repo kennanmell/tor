@@ -126,7 +126,7 @@ public class TorMain {
       System.out.println("Main: extending connection with " + extendServiceCandidate);
       try {
         // Send relay extend.
-        byte[] ipStrBytes = (extendServiceCandidate.ip.toString() +
+        byte[] ipStrBytes = (extendServiceCandidate.ip.getHostAddress() +
             ":" + extendServiceCandidate.iport + '\0').getBytes();
         byte[] extendCell = new byte[512];
         extendCell[1] = 1;

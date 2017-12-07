@@ -108,9 +108,11 @@ public class TorSocketReaderThread extends Thread {
         // Shouldn't need to handle relay connected or relay extended because this case only
         // happens in relay extend, which only sends open and create request-response exchanges.
         if (command == TorCommand.OPENED || command == TorCommand.OPEN_FAILED ||
-            command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED) {
+            command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED ||
+            (command == TorCommand.RELAY && RelayCommand.fromByte(cell[13]) == RelayCommand.EXTENDED)) {
           BlockingQueue<byte[]> extendBuffer = SocketManager.getRelayExtendBufferForSocket(readSocket);
           if (extendBuffer != null) {
+            System.out.println("forwarding command to buffer");
             extendBuffer.add(message);
           }
           continue loop;
@@ -337,7 +339,7 @@ public class TorSocketReaderThread extends Thread {
         e.printStackTrace();
         // TODO: handle?
       }
-      final String ip = (new String(extendCell)).substring(15, colonSeparatorIndex);
+      final String ip = (new String(extendCell)).substring(14, colonSeparatorIndex);
 
       int newAgentId = 0;
       for (int i = endIndex + 1; i < 14 + bodyLength; i++) {

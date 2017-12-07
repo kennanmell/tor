@@ -48,6 +48,7 @@ public class RegAgentThread extends Thread {
     this.groupNo = groupNo;
     this.instanceNo = instanceNo;
     this.agentId = agentId;
+    this.iport = iport;
 
     InetAddress serverAddress;
     try {
@@ -88,6 +89,7 @@ public class RegAgentThread extends Thread {
   @Override
   public void run() {
     // Handle probes from server.
+    System.out.println("Reg Agent: running agent");
     probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID, null);
     probeHandler.start();
 

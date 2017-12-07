@@ -46,6 +46,9 @@ public class DirectedHopHandlerThread extends Thread {
 
       loop: while (readSocket.getInputStream().read(cell) == 512) {
         System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
+        if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
+          System.out.println(RelayCommand.fromByte(cell[13]).toString());
+        }
         byte[] message = new byte[512]; // copy so original cell doesn't get put on buffer then modified.
         System.arraycopy(cell, 0, message, 0, 512);
         TorCommand command = commandForCell(cell);
@@ -73,7 +76,9 @@ public class DirectedHopHandlerThread extends Thread {
         if (!hopTable.containsKey(currentHop)) {
           // This thread doesn't have the circuit mapping, so it can only handle a create
           // cell in this case.
+          System.out.println(this.toString() + ": hop table doesn't have hop");
           if (command == TorCommand.CREATE) {
+            System.out.println(this.toString() + ": handling CREATE, sending CREATED");
             hopTable.put(currentHop, null);
             message[2] = TorCommand.CREATED.toByte();
             SocketManager.writeToSocket(readSocket, message);
@@ -242,6 +247,7 @@ public class DirectedHopHandlerThread extends Thread {
 
     @Override
     public void run() {
+      System.out.println("Relay Extend: starting");
       // Get the data from the relay extend cell.
       byte[] message = new byte[512];
       System.arraycopy(extendCell, 0, message, 0, 512);
@@ -262,29 +268,34 @@ public class DirectedHopHandlerThread extends Thread {
       }
 
       int iport = 0;
-      for (int i = colonSeparatorIndex + 1; i < endIndex; i++) {
-        iport |= (extendCell[i] & 0xFF) << ((endIndex - 1 - i) * 8);
+      try {
+        iport = Integer.parseInt(new String(extendCell).substring(colonSeparatorIndex + 1, endIndex));
+      } catch (NumberFormatException e) {
+        // TODO: handle
       }
       final String ip = (new String(extendCell)).substring(14, colonSeparatorIndex);
 
-      // Get/create socket to extend the hop to.
-      Socket nextHopSocket = null;
-      try {
-        nextHopSocket = SocketManager.getSocketWithStringAddress(
-            InetAddress.getByName(ip).toString() + ":" + iport);
-      } catch (UnknownHostException e) {
-        // no op
+      int newAgentId = 0;
+      for (int i = endIndex + 1; i < 14 + bodyLength; i++) {
+        newAgentId |= (extendCell[i] & 0xFF) << ((bodyLength + 13 - i) * 8);
       }
+
+      // Get/create socket to extend the hop to.
+      Socket nextHopSocket = SocketManager.agentIdToSocket.get(newAgentId);
       if (nextHopSocket == null) {
+        System.out.println("Relay Extend: opening new socket");
         try {
           nextHopSocket = new Socket(ip, iport);
         } catch (IOException e) {
+          System.out.println(this.toString() + ": failed to open next hop socket 1");
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
           SocketManager.writeToSocket(readSocket, message);
           return;
         }
 
         SocketManager.addSocket(nextHopSocket, true);
+        SocketManager.agentIdToSocket.put(newAgentId, nextHopSocket);
+        (new DirectedHopHandlerThread(nextHopSocket)).start();
         SocketManager.extendBuffers.put(nextHopSocket, readBuffer);
 
         byte[] openCell = new byte[512];
@@ -321,15 +332,18 @@ public class DirectedHopHandlerThread extends Thread {
         SocketManager.extendBuffers.put(nextHopSocket, readBuffer);
       }
 
+      System.out.println("Relay Extend: got circuit");
       int newCircuitId = SocketManager.getNextCircuitIdForSocket(nextHopSocket);
 
       byte[] createCell = new byte[512];
       createCell[0] = (byte) (newCircuitId >> 8);
       createCell[1] = (byte) newCircuitId;
       createCell[2] = TorCommand.CREATE.toByte();
+      System.out.println("Relay Extend: writing CREATE");
       SocketManager.writeToSocket(nextHopSocket, createCell);
       byte[] created;
       try {
+        System.out.println("Relay Extend: waiting for CREATE response");
         created = readBuffer.take();
       } catch (InterruptedException e) {
         SocketManager.removeSocket(nextHopSocket);
@@ -338,6 +352,7 @@ public class DirectedHopHandlerThread extends Thread {
         SocketManager.writeToSocket(readSocket, message);
         return;
       }
+      System.out.println("Relay Extend: got CREATE response");
       if (created[0] != createCell[0] ||
           created[1] != createCell[1] ||
           created[2] != TorCommand.CREATED.toByte()) {

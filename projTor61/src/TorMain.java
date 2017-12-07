@@ -10,7 +10,6 @@ import proxy.ProxyThread;
 public class TorMain {
 
   public static int agentId;
-  public static final int serverPort = 5004;
   public static void main(String[] args) {
     if (args.length != 3) {
       System.out.println("usage: ./run <group number> <instance number> <HTTP Proxy port>");
@@ -31,45 +30,31 @@ public class TorMain {
 
     TorMain.agentId = (groupNo << 16) | instanceNo; // router number
 
-    TorServerThread torServer = new TorServerThread(serverPort);
+    TorServerThread torServer = new TorServerThread();
     torServer.start();
 
     // TODO: make my circuit, uncomment
-    Socket[] createdSockets = makeLocalCircuit(serverPort);
-    for (int i = 1; i < 4; i++) {
-      if (createdSockets[i] != null) {
-        SocketManager.addSocket(createdSockets[i], true);
-      }
-    }
+    Socket proxyCircuitFirstHopSocket = makeLocalCircuit(torServer.serverSocket.getLocalPort());
 
     RegAgentThread regThread = new RegAgentThread(groupNo, instanceNo, agentId, torServer.serverSocket.getLocalPort()); // TODO: use Service class instead?
     regThread.start();
 
-    (new ProxyThread(iport, 1, createdSockets[0])).start();
+    (new ProxyThread(iport, 1, proxyCircuitFirstHopSocket)).start();
   }
 
-  private static Socket[] makeLocalCircuit(int iport) {
+  private static Socket makeLocalCircuit(int iport) {
     int connected = 0;
-    Socket[] createdSockets = new Socket[4];
+    Socket result = null;
     while (connected < 3) {
       InetAddress ip;
+      boolean opened = false;
       try {
         ip = InetAddress.getLocalHost();
       } catch (UnknownHostException e) {
         System.out.println("Main: can't find local host");
         return null;
       }
-      String sstr = ip.toString() + ":" + iport;
-      Socket s = null;
-      for (int i = 1; i < 4; i++) {
-        if (createdSockets[i] != null) {
-          String sstr2 = createdSockets[i].getInetAddress().toString() + ":" + createdSockets[i].getPort();
-          if (sstr.equals(sstr2)) {
-            s = createdSockets[i];
-            break;
-          }
-        }
-      }
+      Socket s = SocketManager.agentIdToSocket.get(TorMain.agentId); // replace with actual agent id
       if (s == null) {
         try {
           s = new Socket(ip, iport);
@@ -77,10 +62,12 @@ public class TorMain {
           System.out.println("Failed to bind to local host");
           continue;
         }
+        SocketManager.agentIdToSocket.put(TorMain.agentId, s); // replce with actual agent id
+
         System.out.println("Main: opening new socket for circuit");
         byte[] openCell = new byte[512];
         openCell[2] = TorCommand.OPEN.toByte();
-        openCell[3] = (byte) (agentId >> 24);
+        openCell[3] = (byte) (agentId >> 24); // replace with actual agent id
         openCell[4] = (byte) (agentId >> 16);
         openCell[5] = (byte) (agentId >> 8);
         openCell[6] = (byte) agentId;
@@ -106,13 +93,8 @@ public class TorMain {
           continue;
         }
 
-        if (createdSockets[1] == null) {
-          createdSockets[1] = s;
-        } else if (createdSockets[2] == null) {
-          createdSockets[2] = s;
-        } else if (createdSockets[3] == null) {
-          createdSockets[3] = s;
-        }
+        SocketManager.addSocket(s, true);
+        opened = true;
         System.out.println("Main: OPENed new socket");
       }
 
@@ -142,14 +124,19 @@ public class TorMain {
         System.out.println("Main: CREATED new socket");
       } else {
         System.out.println("Main: EXTENDing socket");
-        sstr += "\0" + TorMain.agentId; // TODO: change id
+        String ipStr = ip.toString() + ":" + iport + '\0';
+        int ipStrBytesLength = ipStr.getBytes().length;
         byte[] extendCell = new byte[512];
         extendCell[1] = 1;
         extendCell[2] = TorCommand.RELAY.toByte();
-        extendCell[11] = (byte) (sstr.length() >> 8);
-        extendCell[12] = (byte) sstr.length();
+        extendCell[11] = (byte) ((ipStrBytesLength + 4) >> 8);
+        extendCell[12] = (byte) (ipStrBytesLength + 4);
         extendCell[13] = RelayCommand.EXTEND.toByte();
-        System.arraycopy(sstr, 0, extendCell, 14, sstr.length());
+        System.arraycopy(ipStr.getBytes(), 0, extendCell, 14, ipStrBytesLength);
+        extendCell[14 + ipStrBytesLength] = (byte) (TorMain.agentId >> 24);
+        extendCell[15 + ipStrBytesLength] = (byte) (TorMain.agentId >> 16);
+        extendCell[16 + ipStrBytesLength] = (byte) (TorMain.agentId >> 8);
+        extendCell[17 + ipStrBytesLength] = (byte) TorMain.agentId;
 
         try {
           s.getOutputStream().write(extendCell);
@@ -159,26 +146,38 @@ public class TorMain {
         }
 
         byte[] response = new byte[512];
-        try {
-          if (s.getInputStream().read(response) != 512 || response[2] != TorCommand.RELAY.toByte() ||
-              response[13] != RelayCommand.EXTENDED) {
-            System.out.println("Main: EXTENDing circuit failed 1");
+        while (true) {
+          try {
+            if (s.getInputStream().read(response) != 512 || response[2] != TorCommand.RELAY.toByte() ||
+                response[13] != RelayCommand.EXTENDED.toByte()) {
+              if (SocketManager.extendBuffers.get(s) != null) {
+                byte[] tempCopy = new byte[512];
+                System.arraycopy(response, 0, tempCopy, 0, 512);
+                SocketManager.extendBuffers.get(s).add(tempCopy);
+              }
+              System.out.println("Main: Forwarded non-EXTEND response");
+              continue;
+            } else {
+              break;
+            }
+          } catch (IOException e) {
+            System.out.println("Main: EXTENDing circuit failed 2");
             continue;
           }
-        } catch (IOException e) {
-          System.out.println("Main: EXTENDing circuit failed 2");
-          continue;
         }
 
         System.out.println("Main: EXTENDED circuit");
       }
 
-      if (createdSockets[0] == null) {
-        createdSockets[0] = s;
+      if (result == null) {
+        result = s;
+      }
+      if (opened) {
+        (new DirectedHopHandlerThread(s)).start();
       }
       connected++;
     }
 
-    return createdSockets;
+    return result;
   }
 }

@@ -18,13 +18,15 @@ public class SocketManager {
   // For getting circuit ids.
   private static int currentEvenId = 2;
 
+  // MARK: socket Map
+  public static Map<Integer, Socket> agentIdToSocket = new HashMap<>();
+
   // MARK: Address to write socket
   public static void addSocket(Socket socket, boolean initiated) {
     synchronized(addressToSocketWriteBuffer) {
       String address = socket.getInetAddress().toString() + ":" + socket.getPort();
       WriteBufferToSocketThread t = new WriteBufferToSocketThread(socket);
       t.start();
-      (new DirectedHopHandlerThread(socket)).start();
       addressToSocketWriteBuffer.put(address, new AddressToWriteBufferTuple(t, initiated));
     }
   }
@@ -38,7 +40,9 @@ public class SocketManager {
         } catch (IOException e) {
           // no op
         }
-        addressToSocketWriteBuffer.get(address).t.notify();
+        synchronized(addressToSocketWriteBuffer.get(address).t) {
+          addressToSocketWriteBuffer.get(address).t.notify();
+        }
         addressToSocketWriteBuffer.remove(address);
       }
     }
@@ -50,14 +54,6 @@ public class SocketManager {
       if (addressToSocketWriteBuffer.containsKey(address)) {
         addressToSocketWriteBuffer.get(address).t.buf.add(data);
       }
-    }
-  }
-
-  public static Socket getSocketWithStringAddress(String address) {
-    if (addressToSocketWriteBuffer.containsKey(address)) {
-      return addressToSocketWriteBuffer.get(address).t.socket;
-    } else {
-      return null;
     }
   }
 

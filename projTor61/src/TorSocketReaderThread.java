@@ -328,6 +328,9 @@ public class TorSocketReaderThread extends Thread {
           nextHopSocket = new Socket(ip, iport);
         } catch (IOException e) {
           System.out.println(this.toString() + ": failed to open next hop socket 1");
+          e.printStackTrace();
+          System.out.println(ip);
+          System.out.println(iport);
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
           SocketManager.writeToSocket(readSocket, message);
           return;

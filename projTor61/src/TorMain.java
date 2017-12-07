@@ -69,7 +69,7 @@ public class TorMain {
       System.out.println("Main: can't find attu");
       return null;
     }
-    candidates.add(new Service(attuHostIp, 39757, 393217, ""));
+    candidates.add(new Service(attuHostIp, 30000, 393217, ""));
     // END TEST CODE
     int connected = 0;
     Socket result = null;

@@ -13,7 +13,7 @@ public class TorServerThread extends Thread {
   /** Sole constructor. */
   public TorServerThread() {
     try {
-      this.serverSocket = new ServerSocket();
+      this.serverSocket = new ServerSocket(0);
     } catch (IOException e) {
       // shouldn't ever happen
       throw new IllegalStateException();

@@ -35,13 +35,13 @@ public class TorMain {
 
     TorMain.agentId = (groupNo << 16) | instanceNo; // router number
 
+    TorServerThread torServer = new TorServerThread();
+    torServer.start();
+
     RegAgentThread regThread = new RegAgentThread(groupNo, instanceNo, agentId, torServer.serverSocket.getLocalPort()); // TODO: use Service class instead?
     regThread.start();
 
     Socket proxyCircuitFirstHopSocket = makeLocalCircuit(regThread.getAllServices());
-
-    TorServerThread torServer = new TorServerThread();
-    torServer.start();
 
     (new ProxyThread(iport, 1, proxyCircuitFirstHopSocket)).start();
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -57,11 +57,13 @@ public class TorMain {
   private static Socket makeLocalCircuit(List<Service> candidates) {
     Random r = new Random();
     List<Socket> openedSockets = new ArrayList<>();
+    System.out.println("local circuit candidates: " + candidates);
 
     int connected = 0;
     Socket result = null;
     while (connected < 3) {
       Service nextHopService = candidates.get(r.nextInt(candidates.size()));
+      System.out.println("trying to add to local circuit: " + nextHopService);
       Socket s = SocketManager.socketForAgentId(nextHopService.data);
       if (s == null) {
         try {

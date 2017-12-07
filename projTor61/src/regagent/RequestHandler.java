@@ -230,9 +230,9 @@ public class RequestHandler {
               byte[] ip = new byte[4];
               System.arraycopy(message, (5 + (10 * j)), ip, 0, 4);
               InetAddress inetaddr = InetAddress.getByAddress(ip);
-              final byte[] iportBytes = new byte[2];
-              System.arraycopy(message, 9 + 10 * j, iportBytes, 0, 2);
-              final int port = (int) ByteBuffer.wrap(iportBytes).getShort();
+              final byte[] iportBytes = new byte[4];
+              System.arraycopy(message, 9 + 10 * j, iportBytes, 2, 2);
+              final int port = ByteBuffer.wrap(iportBytes).getInt();
               final byte[] dataBytes = new byte[4];
               System.arraycopy(message, 11 + 10 * j, dataBytes, 0, 4);
               final int data = ByteBuffer.wrap(dataBytes).getInt();

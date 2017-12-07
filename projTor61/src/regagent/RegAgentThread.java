@@ -4,6 +4,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
@@ -117,10 +118,17 @@ public class RegAgentThread extends Thread {
 
   // Return all reported services available
   public List<Service> getAllServices() {
-    Service[] candidates = requestHandler.fetchServicesBeginningWith("Tor61Router-0007");
-    if (candidates.length == 0) {
+    List<Service> candidates = new ArrayList<>(Arrays.asList(requestHandler.fetchServicesBeginningWith("Tor61Router-0007-"))); // TODO: take all
+    // Register the service.
+    InetAddress localhostIp = null;
+    try {
+      localhostIp = InetAddress.getLocalHost();
+    } catch (UnknownHostException e) {
       // TODO
     }
-    return Arrays.asList(candidates);
+    Service myService = new Service(localhostIp, iport, agentId, "Tor61Router-" + String.format("%04d", groupNo) + "-" +
+            String.format("%04d", instanceNo));
+    candidates.add(myService);
+    return candidates;
   }
 }

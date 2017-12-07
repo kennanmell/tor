@@ -45,6 +45,13 @@ public class TorMain {
     regThread.start();
 
     (new ProxyThread(iport, 1, proxyCircuitFirstHopSocket)).start();
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        System.out.println("running shutdown hook");
+        SocketManager.removeAllSockets();
+      }
+    });
   }
 
   /** Creates the local circuit for routing browser proxy traffic on this tor node. */

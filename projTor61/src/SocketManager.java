@@ -2,7 +2,9 @@ package src;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -47,6 +49,18 @@ public class SocketManager {
   private static int nextOddCircuitId = 3;
   /// For getting circuit ids.
   private static int nextEvenCircuitId = 2;
+
+  /** Calls `removeSocket` on all `Socket`s in the `SocketManager`. Should be called before
+      shutting tor down. */
+  public static void removeAllSockets() {
+    List<Socket> allSockets;
+    synchronized (socketToInfo) {
+      Object[] sockets = socketToInfo.keySet().toArray();
+      for (int i = 0; i < sockets.length; i++) {
+        removeSocket((Socket) sockets[i]);
+      }
+    }
+  }
 
   /** Adds a `Socket` for the `SocketManager` to manage.
       @param socket The `Socket` to add.

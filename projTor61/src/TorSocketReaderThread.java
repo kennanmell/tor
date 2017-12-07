@@ -246,6 +246,7 @@ public class TorSocketReaderThread extends Thread {
     }
     // TODO: kill any open relay extend thread
     SocketManager.removeSocket(readSocket);
+    System.out.println(this + ": killed thread");
   }
 
   /** Gets the `TorCommand` type for a tor cell. */

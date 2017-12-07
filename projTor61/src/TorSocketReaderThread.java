@@ -108,8 +108,8 @@ public class TorSocketReaderThread extends Thread {
         // Shouldn't need to handle relay connected or relay extended because this case only
         // happens in relay extend, which only sends open and create request-response exchanges.
         if (command == TorCommand.OPENED || command == TorCommand.OPEN_FAILED ||
-            command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED ||
-            (command == TorCommand.RELAY && RelayCommand.fromByte(cell[13]) == RelayCommand.EXTENDED)) {
+            command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED) {
+          // TODO: shouldn't forward if not end node?
           BlockingQueue<byte[]> extendBuffer = SocketManager.getRelayExtendBufferForSocket(readSocket);
           if (extendBuffer != null) {
             System.out.println("forwarding command to buffer");
@@ -442,7 +442,14 @@ public class TorSocketReaderThread extends Thread {
 
       Hop currentHop = new Hop(readSocket, ((extendCell[0] & 0xFF) << 8) | (extendCell[1] & 0xFF));
       Hop newHop = new Hop(nextHopSocket, newCircuitId);
+      if (hopTable.containsKey(newHop)) {
+        throw new IllegalStateException("1");
+      }
+      if (hopTable.containsKey(currentHop)) {
+        throw new IllegalStateException("2");
+      }
       hopTable.put(currentHop, newHop);
+      hopTable.put(newHop, currentHop);
       message[13] = RelayCommand.EXTENDED.toByte();
       SocketManager.writeToSocket(readSocket, message);
       SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);

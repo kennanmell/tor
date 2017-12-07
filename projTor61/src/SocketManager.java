@@ -201,4 +201,10 @@ public class SocketManager {
 
     return null;
   }
+
+  public static int agentIdForSocket(Socket socket) {
+    synchronized (socketToInfo) {
+      return socketToInfo.get(socket).agentId;
+    }
+  }
 }

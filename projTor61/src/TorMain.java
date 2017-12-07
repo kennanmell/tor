@@ -67,7 +67,7 @@ public class TorMain {
     Random r = new Random();
     Socket gatewaySocket = null;
     while (gatewaySocket == null) {
-      Service gatewayServiceCandidate = candidates.get(r.nextInt(candidates.size()));
+      Service gatewayServiceCandidate = candidates.get(candidates.size() - 1);
       try {
         // Make socket.
         System.out.println("Main: creating connection with " + gatewayServiceCandidate);
@@ -121,7 +121,7 @@ public class TorMain {
 
     // Extend twice.
     int extendSuccesses = 0;
-    while (extendSuccesses < 2 && !candidates.isEmpty()) { // todo: can't have empty
+    while (extendSuccesses < 3 && !candidates.isEmpty()) { // todo: can't have empty
       Service extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
       System.out.println("Main: extending connection with " + extendServiceCandidate);
       try {

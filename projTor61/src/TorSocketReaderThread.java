@@ -86,7 +86,7 @@ public class TorSocketReaderThread extends Thread {
           return;
         }
 
-        if (commandForCell(cell) != TorCommand.OPEN || !handleOpenCommand(cell)) {
+        if (TorCommand.fromByte(cell[2]) != TorCommand.OPEN || !handleOpenCommand(cell)) {
           System.out.println(this.toString() + ": OPEN FAILED 2");
           SocketManager.removeSocket(readSocket);
           return;
@@ -102,7 +102,8 @@ public class TorSocketReaderThread extends Thread {
         }
         byte[] message = new byte[512]; // copy so original cell doesn't get put on buffer then modified.
         System.arraycopy(cell, 0, message, 0, 512);
-        TorCommand command = commandForCell(cell);
+        TorCommand command = TorCommand.fromByte(cell[2]);
+        RelayCommand candidateRelayCommand = RelayCommand.fromByte(cell[13]);
 
         // If this is a response intended for another thread, forward it.
         // Shouldn't need to handle relay connected or relay extended because this case only
@@ -139,9 +140,16 @@ public class TorSocketReaderThread extends Thread {
           } else if (command == TorCommand.RELAY && RelayCommand.fromByte(cell[13]) == RelayCommand.EXTEND) {
             (new RelayExtendThread(message)).start();
           }
-        } else if (hopTable.get(currentHop) != null) {
+        } else if (hopTable.get(currentHop) != null && (hopTable.get(currentHop).circuitId != 1 ||
+                   SocketManager.agentIdForSocket(hopTable.get(currentHop).s) != TorMain.agentId ||
+                   (command == TorCommand.OPENED || command == TorCommand.OPEN_FAILED ||
+                       command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED ||
+                       (command == TorCommand.RELAY && (candidateRelayCommand == RelayCommand.CONNECTED ||
+                       candidateRelayCommand == RelayCommand.BEGIN_FAILED || candidateRelayCommand == RelayCommand.EXTENDED ||
+                       candidateRelayCommand == RelayCommand.EXTEND_FAILED || candidateRelayCommand == RelayCommand.DATA))))) {
           // This thread has the mapping and it's not at the end of the circuit, so just relay
           // the message.
+          // The above check also makes sure to only forward to browser when command is relevant to it.
           Hop nextHop = hopTable.get(currentHop);
           message[0] = (byte) (nextHop.circuitId >> 8);
           message[1] = (byte) nextHop.circuitId;
@@ -263,11 +271,6 @@ public class TorSocketReaderThread extends Thread {
     TorSocketReaderThread.threadCount--;
     System.out.println(this + ": killed thread");
     System.out.println("threads: " + TorSocketReaderThread.threadCount + " sockets: " + SocketManager.size());
-  }
-
-  /** Gets the `TorCommand` type for a tor cell. */
-  private TorCommand commandForCell(byte[] cell) {
-    return TorCommand.fromByte(cell[2]);
   }
 
   /** Responds to an open cell from a tor node. */

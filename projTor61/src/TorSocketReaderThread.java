@@ -355,7 +355,7 @@ public class TorSocketReaderThread extends Thread {
       // Get/create socket to extend the hop to.
       Socket nextHopSocket = SocketManager.socketForAgentId(newAgentId);
       if (nextHopSocket == null) {
-        System.out.println("Relay Extend: opening new socket");
+        System.out.println("Relay Extend: opening new socket: " + ip + iport);
         try {
           nextHopSocket = new Socket(ip, iport);
         } catch (IOException e) {

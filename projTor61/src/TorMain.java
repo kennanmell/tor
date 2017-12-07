@@ -11,6 +11,7 @@ import regagent.RegAgentThread;
 import regagent.Service;
 import proxy.ProxyThread;
 
+/** `TorMain` sets up and runs a tor node. */
 public class TorMain {
 
   public static int agentId;
@@ -46,6 +47,7 @@ public class TorMain {
     (new ProxyThread(iport, 1, proxyCircuitFirstHopSocket)).start();
   }
 
+  /** Creates the local circuit for routing browser proxy traffic on this tor node. */
   private static Socket makeLocalCircuit(int serverPort) {
     List<Service> candidates = new ArrayList<>(); // TODO: get all registered services
     Random r = new Random();
@@ -67,13 +69,13 @@ public class TorMain {
       System.out.println("Main: can't find attu");
       return null;
     }
-    candidates.add(new Service(attuHostIp, 43448, 393217, ""));
+    candidates.add(new Service(attuHostIp, 39757, 393217, ""));
     // END TEST CODE
     int connected = 0;
     Socket result = null;
     while (connected < 3) {
       Service nextHopService = candidates.get(r.nextInt(candidates.size()));
-      Socket s = SocketManager.agentIdToSocket.get(nextHopService.data); // replace with actual agent id
+      Socket s = SocketManager.socketForAgentId(nextHopService.data);
       if (s == null) {
         try {
           s = new Socket(nextHopService.ip, nextHopService.iport);
@@ -82,7 +84,11 @@ public class TorMain {
           candidates.remove(nextHopService);
           continue;
         }
-        SocketManager.agentIdToSocket.put(nextHopService.data, s); // replce with actual agent id
+        if (s == null) {
+          System.out.println("S IS NULL!!!!");
+        }
+        SocketManager.addSocket(s, true);
+        SocketManager.setAgentIdForSocket(s, nextHopService.data);
 
         System.out.println("Main: opening new socket for circuit");
         byte[] openCell = new byte[512];
@@ -99,7 +105,7 @@ public class TorMain {
           s.getOutputStream().write(openCell);
         } catch (IOException e) {
           candidates.remove(nextHopService);
-          SocketManager.agentIdToSocket.remove(nextHopService.data);
+          SocketManager.removeSocket(s);
           System.out.println("Main: failed to write OPEN");
           continue;
         }
@@ -109,17 +115,16 @@ public class TorMain {
           if (s.getInputStream().read(response) != 512 || response[2] != TorCommand.OPENED.toByte()) {
             System.out.println("Main: OPENing new socket failed 1");
             candidates.remove(nextHopService);
-            SocketManager.agentIdToSocket.remove(nextHopService.data);
+            SocketManager.removeSocket(s);
             continue;
           }
         } catch (IOException e) {
           System.out.println("Main: OPENing new socket failed 2");
           candidates.remove(nextHopService);
-          SocketManager.agentIdToSocket.remove(nextHopService.data);
+          SocketManager.removeSocket(s);
           continue;
         }
 
-        SocketManager.addSocket(s, true);
         openedSockets.add(s);
         System.out.println("Main: OPENed new socket");
       }
@@ -180,10 +185,10 @@ public class TorMain {
           try {
             if (s.getInputStream().read(response) != 512 || response[2] != TorCommand.RELAY.toByte() ||
                 response[13] != RelayCommand.EXTENDED.toByte()) {
-              if (SocketManager.extendBuffers.get(s) != null) {
+              if (SocketManager.getRelayExtendBufferForSocket(s) != null) {
                 byte[] tempCopy = new byte[512];
                 System.arraycopy(response, 0, tempCopy, 0, 512);
-                SocketManager.extendBuffers.get(s).add(tempCopy);
+                SocketManager.getRelayExtendBufferForSocket(s).add(tempCopy);
               }
               System.out.println("Main: Forwarded non-EXTEND response");
               continue;
@@ -207,7 +212,7 @@ public class TorMain {
     }
 
     while (!openedSockets.isEmpty()) {
-      (new DirectedHopHandlerThread(openedSockets.remove(0))).start();
+      (new TorSocketReaderThread(openedSockets.remove(0))).start();
     }
     return result;
   }

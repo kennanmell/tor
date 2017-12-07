@@ -5,7 +5,7 @@ public enum RelayCommand {
   BEGIN, DATA, END, CONNECTED, EXTEND, EXTENDED, BEGIN_FAILED, EXTEND_FAILED;
 
   /** Converts this `RelayCommand` to a byte.
-  @return A `byte` corresponding to the `RelayCommand`, or -1 if the command if not recognized. */
+  @return A `byte` corresponding to the `RelayCommand`. */
   public byte toByte() {
     switch (this) {
     case BEGIN:         return 1;
@@ -16,7 +16,7 @@ public enum RelayCommand {
     case EXTENDED:      return 7;
     case BEGIN_FAILED:  return 0xb;
     case EXTEND_FAILED: return 0xc;
-    default:            return -1;
+    default:            throw new IllegalStateException("command: " + this);
     }
   }
 

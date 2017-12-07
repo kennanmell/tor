@@ -1,11 +1,11 @@
 package src;
 
-/** Represents the 8 types of commands used by the agent and server to communicate. */
+/** Represents the 8 types of tor commands. */
 public enum TorCommand {
   OPEN, OPENED, OPEN_FAILED, CREATE, CREATED, CREATE_FAILED, DESTROY, RELAY;
 
   /** Converts this `TorCommand` to a byte.
-      @return A `byte` corresponding to the `TorCommand`, or -1 if the command if not recognized. */
+      @return A `byte` corresponding to this `TorCommand`. */
   public byte toByte() {
     switch (this) {
     case CREATE:        return 1;
@@ -16,7 +16,7 @@ public enum TorCommand {
     case OPENED:        return 6;
     case OPEN_FAILED:   return 7;
     case CREATE_FAILED: return 8;
-    default:            return -1;
+    default:            throw new IllegalStateException("command: " + this);
     }
   }
 

@@ -10,13 +10,56 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import proxy.RawDataRelayThread;
 
-public class DirectedHopHandlerThread extends Thread {
-  public static Map<Hop, Hop> hopTable = new HashMap<>();
+/** A `TorSocketReaderThread` reads from a `Socket` and is responsible for handling or
+    delegating all events on the `Socket` (i.e. the 8 types of tor commands). */
+public class TorSocketReaderThread extends Thread {
+  /** A `Hop` represents one step in a tor circuit, which can transmit data between two tor
+      nodes. Each `Hop` consists of a `Socket` and a `int` representing a circuit id. */
+  private static class Hop {
+    /// The `Socket` associated with this `Hop`.
+    public final Socket s;
+    /// The circuit id associated with this `Hop`.
+    public final int circuitId;
 
+    /** Sole constructor.
+        @param s The `Socket` associated with this `Hop`.
+        @param circuitId The circuit id associated with this `Hop`. */
+    Hop(Socket s, int circuitId) {
+      this.s = s;
+      this.circuitId = circuitId;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof Hop)) {
+        return false;
+      }
+
+      Hop otherHop = (Hop) other;
+
+      // Only one socket per ip:port, so use strict == comparison.
+      return this.s == otherHop.s && this.circuitId == otherHop.circuitId;
+    }
+
+    @Override
+    public int hashCode() {
+      return s.hashCode() * 5 + circuitId * 13;
+    }
+  }
+
+  /// A shared map that all `TorSocketReaderThread`s maintain and reference to direct traffic
+  /// across the tor network.
+  private static Map<Hop, Hop> hopTable = new HashMap<>();
+
+  /// The `Socket` this thread reads from.
   private final Socket readSocket;
+  /// A map from stream ids to `RawDataRelayThread`s reading data from a web server for that stream.
   private Map<Integer, RawDataRelayThread> responseRelayForStream;
 
-  public DirectedHopHandlerThread(Socket readSocket) {
+  /** Sole constructor.
+      @param readSocket The `Socket` to read from and handle events for.
+      @requires Nothing else will read from `readSocket` as long as this thread is running. */
+  public TorSocketReaderThread(Socket readSocket) {
     this.readSocket = readSocket;
     this.responseRelayForStream = new HashMap<>();
   }
@@ -58,8 +101,9 @@ public class DirectedHopHandlerThread extends Thread {
         // happens in relay extend, which only sends open and create request-response exchanges.
         if (command == TorCommand.OPENED || command == TorCommand.OPEN_FAILED ||
             command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED) {
-          if (SocketManager.extendBuffers.containsKey(readSocket)) {
-            SocketManager.extendBuffers.get(readSocket).add(message);
+          BlockingQueue<byte[]> extendBuffer = SocketManager.getRelayExtendBufferForSocket(readSocket);
+          if (extendBuffer != null) {
+            extendBuffer.add(message);
           }
           continue loop;
         }
@@ -204,10 +248,12 @@ public class DirectedHopHandlerThread extends Thread {
     SocketManager.removeSocket(readSocket);
   }
 
+  /** Gets the `TorCommand` type for a tor cell. */
   private TorCommand commandForCell(byte[] cell) {
     return TorCommand.fromByte(cell[2]);
   }
 
+  /** Responds to an open cell from a tor node. */
   private boolean handleOpenCommand(byte[] cell) {
     byte[] message = new byte[512];
     System.arraycopy(cell, 0, message, 0, 512);
@@ -225,29 +271,15 @@ public class DirectedHopHandlerThread extends Thread {
     return openedId == TorMain.agentId;
   }
 
-  private byte[] getOpenCommand(TorCommand command, int openerId, int openedId) {
-    byte[] result = new byte[512];
-    switch (command) {
-      case OPEN: result[2] = command.toByte(); break;
-      case OPENED: result[2] = command.toByte(); break;
-      case OPEN_FAILED: result[2] = command.toByte(); break;
-      default: throw new IllegalArgumentException();
-    }
-    result[3] = (byte) (openerId >> 24);
-    result[4] = (byte) (openerId >> 16);
-    result[5] = (byte) (openerId >> 8);
-    result[6] = (byte) openerId;
-    result[7] = (byte) (openedId >> 24);
-    result[8] = (byte) (openedId >> 16);
-    result[9] = (byte) (openedId >> 8);
-    result[10] = (byte) openedId;
-    return result;
-  }
-
+  /** A helper thread that handles a series of request-response exchanges triggered by
+      a relay extend request. */
   private class RelayExtendThread extends Thread {
+    /// The relay extend request cell.
     byte[] extendCell;
+    /// A buffer that contains responses to this thread's requests.
     BlockingQueue<byte[]> readBuffer;
 
+    /** Sole constructor. */
     RelayExtendThread(byte[] extendCell) {
       this.extendCell = extendCell;
       this.readBuffer = new LinkedBlockingQueue<>();
@@ -289,7 +321,7 @@ public class DirectedHopHandlerThread extends Thread {
       }
 
       // Get/create socket to extend the hop to.
-      Socket nextHopSocket = SocketManager.agentIdToSocket.get(newAgentId);
+      Socket nextHopSocket = SocketManager.socketForAgentId(newAgentId);
       if (nextHopSocket == null) {
         System.out.println("Relay Extend: opening new socket");
         try {
@@ -302,9 +334,9 @@ public class DirectedHopHandlerThread extends Thread {
         }
 
         SocketManager.addSocket(nextHopSocket, true);
-        SocketManager.agentIdToSocket.put(newAgentId, nextHopSocket);
-        (new DirectedHopHandlerThread(nextHopSocket)).start();
-        SocketManager.extendBuffers.put(nextHopSocket, readBuffer);
+        SocketManager.setAgentIdForSocket(nextHopSocket, newAgentId);
+        (new TorSocketReaderThread(nextHopSocket)).start();
+        SocketManager.setRelayExtendBufferForSocket(nextHopSocket, readBuffer);
 
         byte[] openCell = new byte[512];
         openCell[2] = TorCommand.OPEN.toByte();
@@ -323,7 +355,7 @@ public class DirectedHopHandlerThread extends Thread {
           opened = readBuffer.take();
         } catch (InterruptedException e) {
           SocketManager.removeSocket(nextHopSocket);
-          SocketManager.extendBuffers.remove(nextHopSocket);
+          SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
           SocketManager.writeToSocket(readSocket, message);
           return;
@@ -331,13 +363,13 @@ public class DirectedHopHandlerThread extends Thread {
         if (opened[2] != TorCommand.OPENED.toByte()) {
           // TODO: also check opener and opened ids
           SocketManager.removeSocket(nextHopSocket);
-          SocketManager.extendBuffers.remove(nextHopSocket);
+          SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
           SocketManager.writeToSocket(readSocket, message);
           return;
         }
       } else {
-        SocketManager.extendBuffers.put(nextHopSocket, readBuffer);
+        SocketManager.setRelayExtendBufferForSocket(nextHopSocket, readBuffer);
       }
 
       System.out.println("Relay Extend: got circuit");
@@ -355,7 +387,7 @@ public class DirectedHopHandlerThread extends Thread {
         created = readBuffer.take();
       } catch (InterruptedException e) {
         SocketManager.removeSocket(nextHopSocket);
-        SocketManager.extendBuffers.remove(nextHopSocket);
+        SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
         message[13] = RelayCommand.EXTEND_FAILED.toByte();
         SocketManager.writeToSocket(readSocket, message);
         return;
@@ -365,7 +397,7 @@ public class DirectedHopHandlerThread extends Thread {
           created[1] != createCell[1] ||
           created[2] != TorCommand.CREATED.toByte()) {
         SocketManager.removeSocket(nextHopSocket);
-        SocketManager.extendBuffers.remove(nextHopSocket);
+        SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
         message[13] = RelayCommand.EXTEND_FAILED.toByte();
         SocketManager.writeToSocket(readSocket, message);
         return;
@@ -376,7 +408,7 @@ public class DirectedHopHandlerThread extends Thread {
       hopTable.put(currentHop, newHop);
       message[13] = RelayCommand.EXTENDED.toByte();
       SocketManager.writeToSocket(readSocket, message);
-      SocketManager.extendBuffers.remove(nextHopSocket);
+      SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
     }
   }
 }

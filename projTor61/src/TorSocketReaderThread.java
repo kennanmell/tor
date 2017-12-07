@@ -74,7 +74,7 @@ public class TorSocketReaderThread extends Thread {
   public void run() {
     System.out.println("started DHH thread " + this.toString());
     TorSocketReaderThread.threadCount++;
-    System.out.println("thread count: " + TorSocketReaderThread.threadCount);
+    System.out.println("threads: " + TorSocketReaderThread.threadCount + " sockets: " + SocketManager.size());
     try {
       byte[] cell = new byte[512];
       if (!SocketManager.socketWasInitiated(readSocket)) {
@@ -260,7 +260,7 @@ public class TorSocketReaderThread extends Thread {
     }
     TorSocketReaderThread.threadCount--;
     System.out.println(this + ": killed thread");
-    System.out.println("thread count: " + TorSocketReaderThread.threadCount);
+    System.out.println("threads: " + TorSocketReaderThread.threadCount + " sockets: " + SocketManager.size());
   }
 
   /** Gets the `TorCommand` type for a tor cell. */

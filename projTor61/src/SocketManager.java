@@ -50,6 +50,13 @@ public class SocketManager {
   /// For getting circuit ids.
   private static int nextEvenCircuitId = 2;
 
+  // for debugging, temporary
+  public static int size() {
+    synchronized (socketToInfo) {
+      return socketToInfo.size();
+    }
+  }
+
   /** Calls `removeSocket` on all `Socket`s in the `SocketManager`. Should be called before
       shutting tor down. */
   public static void removeAllSockets() {

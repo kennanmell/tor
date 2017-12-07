@@ -29,7 +29,7 @@ public class TorServerThread extends Thread {
         Socket newSocket = serverSocket.accept();
         SocketManager.addSocket(newSocket, false);
         (new TorSocketReaderThread(newSocket)).start();
-        System.out.println("TorServerThread: added new socket");
+        System.out.println("TorServerThread: added new socket- " + newSocket);
       } catch (IOException e) {
         System.out.println("TorServerThread: failed to accept socket");
         continue;

@@ -282,6 +282,14 @@ public class TorSocketReaderThread extends Thread {
     } else {
       message[2] = TorCommand.OPEN_FAILED.toByte();
     }
+
+    int openerId = 0;
+    openerId |= (cell[3] & 0xFF) << 24;
+    openerId |= (cell[4] & 0xFF) << 16;
+    openerId |= (cell[5] & 0xFF) << 8;
+    openerId |= (cell[6] & 0xFF);
+    SocketManager.setAgentIdForSocket(readSocket, openerId);
+
     SocketManager.writeToSocket(readSocket, message);
     return openedId == TorMain.agentId;
   }
@@ -342,7 +350,7 @@ public class TorSocketReaderThread extends Thread {
         System.out.println("Relay Extend: opening new socket");
         try {
           nextHopSocket = new Socket(ip, iport);
-        } catch (Exception e) {
+        } catch (IOException e) {
           System.out.println(this.toString() + ": failed to open next hop socket 1");
           e.printStackTrace();
           System.out.println(ip);

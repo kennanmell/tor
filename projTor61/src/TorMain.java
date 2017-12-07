@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import regagent.RegAgentThread;
@@ -35,6 +36,11 @@ public class TorMain {
 
     TorMain.agentId = (groupNo << 16) | instanceNo; // router number
 
+    // correct order:
+    // 1. make local circuit
+    // 2. start tor socket
+    // 3. start registration service
+    // 4. start proxy (could also be 2)
     TorServerThread torServer = new TorServerThread();
     torServer.start();
 
@@ -56,6 +62,103 @@ public class TorMain {
 
   /** Creates the local circuit for routing browser proxy traffic on this tor node. */
   private static Socket makeLocalCircuit(List<Service> candidates) {
+    Random r = new Random();
+    Socket gatewaySocket = null;
+    while (gatewaySocket == null) {
+      Service gatewayServiceCandidate = candidates.get(r.nextInt(candidates.size()));
+      try {
+        // Make socket.
+        gatewaySocket = new Socket(gatewayServiceCandidate.ip, gatewayServiceCandidate.iport);
+        System.out.println(gatewaySocket);
+
+        // Write open.
+        byte[] openCell = new byte[512];
+        openCell[2] = TorCommand.OPEN.toByte();
+        openCell[3] = (byte) (TorMain.agentId >> 24);
+        openCell[4] = (byte) (TorMain.agentId >> 16);
+        openCell[5] = (byte) (TorMain.agentId >> 8);
+        openCell[6] = (byte) TorMain.agentId;
+        openCell[7] = (byte) (gatewayServiceCandidate.data >> 24); // opened agent id
+        openCell[8] = (byte) (gatewayServiceCandidate.data >> 16);
+        openCell[9] = (byte) (gatewayServiceCandidate.data >> 8);
+        openCell[10] = (byte) gatewayServiceCandidate.data;
+        gatewaySocket.getOutputStream().write(openCell);
+
+        // Read opened.
+        byte[] openResponse = new byte[512];
+        if (gatewaySocket.getInputStream().read(openResponse) != 512 ||
+            openResponse[2] != TorCommand.OPENED.toByte()) {
+          // TODO: also check opener and opened ID in openResponse.
+          gatewaySocket = null;
+          candidates.remove(gatewayServiceCandidate);
+          continue;
+        }
+
+        // Write create.
+        byte[] createCell = new byte[512];
+        createCell[1] = 1;
+        createCell[2] = TorCommand.CREATE.toByte();
+        gatewaySocket.getOutputStream().write(createCell);
+
+        // Read created.
+        byte[] createResponse = new byte[512];
+        if (gatewaySocket.getInputStream().read(createResponse) != 512 ||
+            createResponse[2] != TorCommand.CREATED.toByte()) {
+          // TODO: also check circuit id in created.
+          gatewaySocket = null;
+          candidates.remove(gatewayServiceCandidate);
+          continue;
+        }
+      } catch (IOException e) {
+        gatewaySocket = null;
+        candidates.remove(gatewayServiceCandidate);
+        continue;
+      }
+    }
+
+    // Extend twice.
+    int extendSuccesses = 0;
+    while (extendSuccesses < 2 && !candidates.isEmpty()) { // todo: can't have empty
+      Service extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
+      try {
+        // Send relay extend.
+        byte[] ipStrBytes = (extendServiceCandidate.ip.toString() +
+            ":" + extendServiceCandidate.iport + '\0').getBytes();
+        byte[] extendCell = new byte[512];
+        extendCell[1] = 1;
+        extendCell[2] = TorCommand.RELAY.toByte();
+        extendCell[11] = (byte) ((ipStrBytes.length + 4) >> 8);
+        extendCell[12] = (byte) (ipStrBytes.length + 4);
+        extendCell[13] = RelayCommand.EXTEND.toByte();
+        System.arraycopy(ipStrBytes, 0, extendCell, 14, ipStrBytes.length);
+        extendCell[14 + ipStrBytes.length] = (byte) (extendServiceCandidate.data >> 24); // agent id
+        extendCell[15 + ipStrBytes.length] = (byte) (extendServiceCandidate.data >> 16);
+        extendCell[16 + ipStrBytes.length] = (byte) (extendServiceCandidate.data >> 8);
+        extendCell[17 + ipStrBytes.length] = (byte) extendServiceCandidate.data;
+        gatewaySocket.getOutputStream().write(extendCell);
+
+        // Read relay extended.
+        byte[] extendResponse = new byte[512];
+        if (gatewaySocket.getInputStream().read(extendResponse) != 512 ||
+            extendResponse[2] != TorCommand.RELAY.toByte() ||
+            extendResponse[13] != RelayCommand.EXTENDED.toByte()) {
+          System.out.println("Main: extend failed 1");
+          System.out.println(Arrays.toString(extendResponse));
+          candidates.remove(extendServiceCandidate);
+        } else {
+          System.out.println("Main: extend succeeded");
+          extendSuccesses++;
+        }
+      } catch (IOException e) {
+        System.out.println("Main: extend failed");
+        e.printStackTrace();
+        candidates.remove(extendServiceCandidate);
+      }
+    }
+
+    return gatewaySocket;
+
+    /*
     Random r = new Random();
     List<Socket> openedSockets = new ArrayList<>();
     System.out.println("local circuit candidates: " + candidates);
@@ -205,5 +308,6 @@ public class TorMain {
       (new TorSocketReaderThread(openedSockets.remove(0))).start();
     }
     return result;
+    */
   }
 }

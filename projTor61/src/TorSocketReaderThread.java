@@ -442,10 +442,10 @@ public class TorSocketReaderThread extends Thread {
 
       Hop currentHop = new Hop(readSocket, ((extendCell[0] & 0xFF) << 8) | (extendCell[1] & 0xFF));
       Hop newHop = new Hop(nextHopSocket, newCircuitId);
-      if (hopTable.containsKey(newHop)) {
+      if (hopTable.get(newHop) != null) {
         throw new IllegalStateException("1");
       }
-      if (hopTable.containsKey(currentHop)) {
+      if (hopTable.get(currentHop) != null) {
         throw new IllegalStateException("2");
       }
       hopTable.put(currentHop, newHop);

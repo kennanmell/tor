@@ -62,7 +62,11 @@ public class TorSocketReaderThread extends Thread {
       @requires Nothing else will read from `readSocket` as long as this thread is running. */
   public TorSocketReaderThread(Socket readSocket) {
     this.readSocket = readSocket;
-    readSocket.setSoTimeout(0);
+    try {
+      readSocket.setSoTimeout(0);
+    } catch (IOException e) {
+      // no op
+    }
     this.responseRelayForStream = new HashMap<>();
   }
 

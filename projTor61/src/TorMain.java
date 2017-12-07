@@ -35,14 +35,13 @@ public class TorMain {
 
     TorMain.agentId = (groupNo << 16) | instanceNo; // router number
 
-    TorServerThread torServer = new TorServerThread();
-    torServer.start();
-
-    // TODO: make my circuit, uncomment
-    Socket proxyCircuitFirstHopSocket = makeLocalCircuit(torServer.serverSocket.getLocalPort());
-
     RegAgentThread regThread = new RegAgentThread(groupNo, instanceNo, agentId, torServer.serverSocket.getLocalPort()); // TODO: use Service class instead?
     regThread.start();
+
+    Socket proxyCircuitFirstHopSocket = makeLocalCircuit(regThread.getAllServices());
+
+    TorServerThread torServer = new TorServerThread();
+    torServer.start();
 
     (new ProxyThread(iport, 1, proxyCircuitFirstHopSocket)).start();
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -55,29 +54,10 @@ public class TorMain {
   }
 
   /** Creates the local circuit for routing browser proxy traffic on this tor node. */
-  private static Socket makeLocalCircuit(int serverPort) {
-    List<Service> candidates = new ArrayList<>(); // TODO: get all registered services
+  private static Socket makeLocalCircuit(List<Service> candidates) {
     Random r = new Random();
     List<Socket> openedSockets = new ArrayList<>();
 
-    // START TEST CODE
-    InetAddress localHostIp;
-    try {
-      localHostIp = InetAddress.getLocalHost();
-    } catch (UnknownHostException e) {
-      System.out.println("Main: can't find local host");
-      return null;
-    }
-    candidates.add(new Service(localHostIp, serverPort, TorMain.agentId, ""));
-    InetAddress attuHostIp;
-    try {
-      attuHostIp = InetAddress.getByName("attu2.cs.washington.edu");
-    } catch (UnknownHostException e) {
-      System.out.println("Main: can't find attu");
-      return null;
-    }
-    candidates.add(new Service(attuHostIp, 30000, 393217, ""));
-    // END TEST CODE
     int connected = 0;
     Socket result = null;
     while (connected < 3) {

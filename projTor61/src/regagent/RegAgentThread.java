@@ -117,7 +117,7 @@ public class RegAgentThread extends Thread {
 
   // Return all reported services available
   public List<Service> getAllServices() {
-    Service[] candidates = requestHandler.fetchServicesBeginningWith("Tor61Router");
+    Service[] candidates = requestHandler.fetchServicesBeginningWith("Tor61Router-0007");
     if (candidates.length == 0) {
       // TODO
     }

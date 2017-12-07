@@ -125,7 +125,7 @@ public class RegAgentThread extends Thread {
 
   // Return all reported services available
   public List<Service> getAllServices() {
-    List<Service> candidates = new ArrayList<>(Arrays.asList(requestHandler.fetchServicesBeginningWith("Tor61Router-4389-"))); // TODO: take all
+    List<Service> candidates = new ArrayList<>(Arrays.asList(requestHandler.fetchServicesBeginningWith("Tor61Router-4391-"))); // TODO: take all
     // Register the service.
     InetAddress localhostIp = null;
     try {

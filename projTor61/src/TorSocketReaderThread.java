@@ -241,7 +241,7 @@ public class TorSocketReaderThread extends Thread {
         }
       }
     } catch (IOException e) {
-      // no op
+      e.printStackTrace();
     }
 
     for (int key : responseRelayForStream.keySet()) {
@@ -317,7 +317,8 @@ public class TorSocketReaderThread extends Thread {
       try {
         iport = Integer.parseInt(new String(extendCell).substring(colonSeparatorIndex + 1, endIndex));
       } catch (NumberFormatException e) {
-        // TODO: handle
+        e.printStackTrace();
+        // TODO: handle?
       }
       final String ip = (new String(extendCell)).substring(14, colonSeparatorIndex);
 

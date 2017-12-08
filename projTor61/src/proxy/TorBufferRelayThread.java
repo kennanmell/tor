@@ -28,6 +28,7 @@ public class TorBufferRelayThread extends Thread {
     while (true) {
       try {
         byte[] curr = buf.poll(25000, TimeUnit.MILLISECONDS);
+        System.out.println("length of request: " + curr.length);
         if (curr[2] == 3 && curr[13] == 2) { // relay data
           int length = ((curr[11] & 0xFF) << 8 | (curr[12] & 0xFF));
           for (int i = 14; i < 14 + length; i++) {

@@ -37,6 +37,7 @@ public class SharedDataDistributionThread extends Thread {
             System.out.println("bytes before putting in buffer: ");
             System.out.println(buf.toString());
             pendingRequests.get(streamId).put(buf);
+            System.out.println("put buffer in map");
           }
         }
         System.out.println("size of buf: " + buf.length);

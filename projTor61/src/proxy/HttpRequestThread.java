@@ -214,7 +214,8 @@ public class HttpRequestThread extends Thread {
       try {
         byte[] curr = buf.poll(25000, TimeUnit.MILLISECONDS);
         System.out.println("size of response: " + curr.length);
-        System.out.println("handling response: ");
+        System.out.println("handling buf response: ");
+        System.out.println(Arrays.deepToString(curr));
         if (curr[2] == 3 && curr[13] == 2) { // relay data
           int length = ((curr[11] & 0xFF) << 8 | (curr[12] & 0xFF));
           for (int i = 14; i < 14 + length; i++) {

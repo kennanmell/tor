@@ -98,8 +98,9 @@ public class TorSocketReaderThread extends Thread {
 
       loop: while (true) {
         int read = readSocket.getInputStream().read(cell);
-        System.out.println(read);
+        System.out.println("bytes read: " + read);
         if (read != 512) {
+          System.out.println(Arrays.toString(cell));
           break;
         }
         System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
@@ -357,7 +358,6 @@ public class TorSocketReaderThread extends Thread {
         System.out.println("Relay extend: self loop");
         message[13] = RelayCommand.EXTENDED.toByte();
         SocketManager.writeToSocket(readSocket, message);
-        // TODO: CLEAN UP
         return;
       }
 

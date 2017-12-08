@@ -169,7 +169,8 @@ public class HttpRequestThread extends Thread {
           // TODO
           message[11] = (byte) (Math.min(buf.length(), 512 - 14) >> 8);
           message[12] = (byte) Math.min(buf.length(), 512 - 14);
-          System.arraycopy(buf, 0, message, 14, Math.min(buf.length(), 512 - 14));
+          byte[] bufBytes = buf.getBytes();
+          System.arraycopy(bufBytes, 0, message, 14, Math.min(bufBytes.length, 512 - 14));
           writeSocket.getOutputStream().write(message);
           buf = buf.substring(Math.min(buf.length(), 512 - 14));
         }

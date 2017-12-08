@@ -34,6 +34,8 @@ public class SharedDataDistributionThread extends Thread {
             if (buf == null) {
               System.out.println("putting in null buf from shared thread");
             }
+            System.out.println("bytes before putting in buffer: ");
+            System.out.println(buf.toString());
             pendingRequests.get(streamId).put(buf);
           }
         }

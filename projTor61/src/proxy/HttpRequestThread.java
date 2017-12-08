@@ -222,6 +222,7 @@ public class HttpRequestThread extends Thread {
             if (curr[i] == (int) '\n') {
               clientSocket.getOutputStream().write(line.toString().getBytes());
               if (line.equals("\n") || line.equals("\r\n")) {
+                System.out.println("reached end of header in handleHTTPResponse");
                 (new TorBufferRelayThread(clientSocket, buf, streamId)).run();
                 break;
               }

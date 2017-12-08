@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -147,6 +148,7 @@ public class TorSocketReaderThread extends Thread {
                        (command == TorCommand.RELAY && (candidateRelayCommand == RelayCommand.CONNECTED ||
                        candidateRelayCommand == RelayCommand.BEGIN_FAILED || candidateRelayCommand == RelayCommand.EXTENDED ||
                        candidateRelayCommand == RelayCommand.EXTEND_FAILED || candidateRelayCommand == RelayCommand.DATA))))) {
+          System.out.println("in else if");
           // This thread has the mapping and it's not at the end of the circuit, so just relay
           // the message.
           // The above check also makes sure to only forward to browser when command is relevant to it.
@@ -158,6 +160,7 @@ public class TorSocketReaderThread extends Thread {
             hopTable.remove(currentHop);
           }
         } else {
+          System.out.println("in end else");
           // This thread has the mapping and it's at the end of the circuit, so it needs
           // to handle the message.
           switch (command) {
@@ -177,12 +180,15 @@ public class TorSocketReaderThread extends Thread {
 
             switch (RelayCommand.fromByte(cell[13])) {
               case BEGIN:
+              System.out.println("in BEGIN");
               message[11] = 0;
               message[12] = 0;
               if (responseRelayForStream.containsKey(relayId)) {
+                System.out.println("BEGIN failed 1");
                 message[13] = RelayCommand.BEGIN_FAILED.toByte();
                 SocketManager.writeToSocket(readSocket, message);
               } else {
+                System.out.println("Trying to open port");
                 int bodyLength = cell[12] & 0xFF;
                 bodyLength |= (cell[11] & 0xFF) << 8;
                 int colonSeparatorIndex = 0;
@@ -196,36 +202,46 @@ public class TorSocketReaderThread extends Thread {
                   }
                 }
 
-                int iport = 0;
-                for (int i = colonSeparatorIndex + 1; i < endIndex; i++) {
-                  iport |= (cell[i] & 0xFF) << ((endIndex - 1 - i) * 8);
-                }
                 final String ip = (new String(cell)).substring(14, colonSeparatorIndex);
+                final int iport = Integer.parseInt((new String(cell)).substring(colonSeparatorIndex + 1, endIndex));
+                System.out.println("body length: " + bodyLength + " csi: " + colonSeparatorIndex + " endIndex: " + endIndex);
+                System.out.println("ip: " + ip + " iport: " + iport);
+                System.out.println(Arrays.toString(cell));
                 Socket webSocket;
                 try {
                   webSocket = new Socket(ip, iport);
                 } catch (IOException e) {
+                  System.out.println("failed to open web socket");
                   message[13] = RelayCommand.BEGIN_FAILED.toByte();
                   SocketManager.writeToSocket(readSocket, message);
                   continue loop;
                 }
 
+                System.out.println("successfully created web socket");
                 RawDataRelayThread responseRelayThread = new RawDataRelayThread(
-                    webSocket, readSocket, relayId & 0xFFFF, circuitId); // TODO: ok to write directly to this socket?
+                    readSocket, webSocket, relayId & 0xFFFF, circuitId); // TODO: ok to write directly to this socket?
                 responseRelayThread.start();
+                System.out.println("adding map for relay Id: " + relayId);
                 responseRelayForStream.put(relayId, responseRelayThread);
 
+                System.out.println("sending connected");
                 message[13] = RelayCommand.CONNECTED.toByte();
                 SocketManager.writeToSocket(readSocket, message);
               }
               break;
 
               case DATA:
+              System.out.println("in data");
               if (responseRelayForStream.containsKey(relayId)) {
+                System.out.println("sending data to server socket");
+                System.out.println("relay id: " + relayId);
+                System.out.println("circuit id: " + circuitId);
                 Socket webSocket = responseRelayForStream.get(relayId).readSocket;
                 // TODO: ok to write directly to this socket?
                 // TODO: how to demultiplex if simultaneous requests to same server from same stream?
                 webSocket.getOutputStream().write(message, 14, 512 - 14);
+              } else {
+                System.out.println("no socket to send data to");
               }
               break;
 

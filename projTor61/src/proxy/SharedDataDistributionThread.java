@@ -20,7 +20,7 @@ public class SharedDataDistributionThread extends Thread {
   @Override
   public void run() {
     try {
-      readSocket.setSoTimeout(0);
+      readSocket.setSoTimeout(0); // remove this later
       byte[] buf = new byte[512];
       while (readSocket.getInputStream().read(buf) == 512) {
         int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
@@ -30,6 +30,7 @@ public class SharedDataDistributionThread extends Thread {
           }
         }
       }
+      System.out.println("not 512 bytes");
     } catch (IOException e) {
       // TODO: better error handling
       e.printStackTrace();

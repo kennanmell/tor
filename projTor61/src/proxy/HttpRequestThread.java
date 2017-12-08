@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
 
 /** HttpRequestThread sends one HTTP or HTTP connect request from the browser client to the
     server, then sends the response from the server to the browser. The request

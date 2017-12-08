@@ -28,7 +28,7 @@ public class TorBufferRelayThread extends Thread {
     while (true) {
       try {
         byte[] curr = buf.poll(25000, TimeUnit.MILLISECONDS);
-        if (Curr == null) {
+        if (curr == null) {
           System.out.println("buff is null");
         }
         System.out.println("length of request: " + curr.length);

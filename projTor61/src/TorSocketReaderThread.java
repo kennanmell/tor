@@ -111,13 +111,12 @@ public class TorSocketReaderThread extends Thread {
         // happens in relay extend, which only sends open and create request-response exchanges.
         if (command == TorCommand.OPENED || command == TorCommand.OPEN_FAILED ||
             command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED) {
-          // TODO: shouldn't forward if not end node?
           BlockingQueue<byte[]> extendBuffer = SocketManager.getRelayExtendBufferForSocket(readSocket);
           if (extendBuffer != null) {
             System.out.println("forwarding command to buffer");
             extendBuffer.add(message);
+            continue loop;
           }
-          continue loop;
         }
 
         // Handle OPEN commands separately since they don't have circuit ids.
@@ -353,6 +352,7 @@ public class TorSocketReaderThread extends Thread {
         System.out.println("Relay extend: self loop");
         message[13] = RelayCommand.EXTENDED.toByte();
         SocketManager.writeToSocket(readSocket, message);
+        // TODO: CLEAN UP
         return;
       }
 

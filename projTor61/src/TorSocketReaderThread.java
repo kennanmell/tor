@@ -96,10 +96,14 @@ public class TorSocketReaderThread extends Thread {
         System.out.println(this.toString() + ": OPENED");
       }
 
-      loop: while (readSocket.getInputStream().read(cell) == 512) {
+      loop: while (true) {
+        int read = readSocket.getInputStream().read(cell);
+        System.out.println(read);
+        if (read != 512) {
+          break;
+        }
         System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
         if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
-          ystem.out.println("Got to while loop relay");
           System.out.println(RelayCommand.fromByte(cell[13]).toString());
         }
         byte[] message = new byte[512]; // copy so original cell doesn't get put on buffer then modified.

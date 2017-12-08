@@ -31,7 +31,7 @@ public class SharedDataDistributionThread extends Thread {
       }
     } catch (IOException e) {
       // TODO: better error handling
-      System.out.println("ioerror");
+      e.printStackTrace();
       return;
     } catch (InterruptedException e) {
       // TODO: better error handling

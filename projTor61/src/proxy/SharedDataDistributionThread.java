@@ -20,6 +20,7 @@ public class SharedDataDistributionThread extends Thread {
   @Override
   public void run() {
     try {
+      readSocket.setSoTimeout(0);
       byte[] buf = new byte[512];
       while (readSocket.getInputStream().read(buf) == 512) {
         int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));

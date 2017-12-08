@@ -101,6 +101,7 @@ public class TorSocketReaderThread extends Thread {
         System.out.println("bytes read: " + read);
         if (read != 512) {
           System.out.println(Arrays.toString(cell));
+          System.out.println(new String(cell));
           break;
         }
         System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
@@ -236,6 +237,8 @@ public class TorSocketReaderThread extends Thread {
                                          Socket webSocket = responseRelayForStream.get(relayId).readSocket;
                                          // TODO: ok to write directly to this socket?
                                          // TODO: how to demultiplex if simultaneous requests to same server from same stream?
+                                         System.out.println("SENDING THIS:");
+                                         System.out.println(new String(message).substring(14));
                                          webSocket.getOutputStream().write(message, 14, 512 - 14);
                                        } else {
                                          System.out.println("no socket to send data to");

@@ -117,10 +117,35 @@ public class HttpRequestThread extends Thread {
           return;
         }
 
+        byte[] message = new byte[512];
+        message[0] = (byte) (ProxyThread.sharedInstance().circuitId >> 8);
+        message[1] = (byte) ProxyThread.sharedInstance().circuitId;
+        message[2] = 3; // relay
+        message[3] = (byte) (streamId >> 8);
+        message[4] = (byte) streamId;
+        message[5] = 0;
+        message[6] = 0;
+        message[11] = (byte) ((512 - 14) >> 8);
+        message[12] = (byte) (512 - 14);
+        message[13] = 2; // data
+        String buf = "";
         while (!bufferedLines.isEmpty()) {
-          // Send the lines of the header that have been read.
-          ProxyThread.sharedInstance().getGatewaySocket().getOutputStream().write(
-              modifyHttpHeaderLine(bufferedLines.remove(0)).getBytes());
+          buf += modifyHttpHeaderLine(bufferedLines.remove(0));
+          while (buf.length() >= (512 - 14)) {
+            System.arraycopy(buf.substring(0, 512 - 14).getBytes(), 0, message, 14, 512 - 14);
+            ProxyThread.sharedInstance().getGatewaySocket().getOutputStream().write(message);
+            buf = buf.substring(512 - 14);
+          }
+        }
+
+        if (buf.length() != 0) {
+          System.arraycopy(buf.getBytes(), 0, message, 14, buf.length());
+          message[11] = (byte) (Math.min(buf.length(), 512 - 14) >> 8);
+          message[12] = (byte) Math.min(buf.length(), 512 - 14);
+          for (int i = 14 + buf.length(); i < 512; i++) {
+            message[i] = 0;
+          }
+          ProxyThread.sharedInstance().getGatewaySocket().getOutputStream().write(message);
         }
 
         handleHttpMessage(clientSocket, ProxyThread.sharedInstance().getGatewaySocket());
@@ -160,7 +185,7 @@ public class HttpRequestThread extends Thread {
       line = modifyHttpHeaderLine(line);
       buf += line;
       if (buf.length() >= (512 - 14)) {
-        System.arraycopy(buf, 0, message, 14, 512 - 14);
+        System.arraycopy(buf.substring(0, 512 - 14).getBytes(), 0, message, 14, 512 - 14);
         writeSocket.getOutputStream().write(message);
         buf = buf.substring(512 - 14);
       }
@@ -185,8 +210,10 @@ public class HttpRequestThread extends Thread {
   private void handleHttpResponse(Socket writeSocket) {
     StringBuilder line = new StringBuilder();
     while (true) {
+      System.out.println("TRYING TO HANDLE RESPONSE!!!");
       try {
         byte[] curr = buf.poll(25000, TimeUnit.MILLISECONDS);
+        System.out.println("handling response: ");
         if (curr[2] == 3 && curr[13] == 2) { // relay data
           int length = ((curr[11] & 0xFF) << 8 | (curr[12] & 0xFF));
           for (int i = 14; i < 14 + length; i++) {
@@ -206,8 +233,10 @@ public class HttpRequestThread extends Thread {
           break;
         }
       } catch (IOException e) {
+          e.printStackTrace();
           break;
       } catch (InterruptedException e) {
+          e.printStackTrace();
           break;
       }
     }
@@ -298,7 +327,11 @@ public class HttpRequestThread extends Thread {
       ProxyThread.sharedInstance().getGatewaySocket().getOutputStream().write(message);
       byte[] result = buf.poll(SO_TIMEOUT_MS, TimeUnit.MILLISECONDS);
       // TODO: handle timeout, stricter data integrity in check
-      return result[13] == 4; // connected
+      if (result == null) {
+        return false;
+      } else {
+        return result[13] == 4; // connected
+      }
     } catch (IOException e) {
       return false;
     } catch (InterruptedException e) {

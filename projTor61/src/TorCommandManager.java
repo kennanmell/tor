@@ -79,7 +79,7 @@ public class TorCommandManager {
   	if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
   		return null;
   	}
-	byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
+	 byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
   	ByteBuffer.wrap(cell).putShort(3, (short) streamID).putShort(11, (short) body.length).put(13, relayCommand.toByte());
   	System.arraycopy(body, 0, cell, 14, body.length);
   	return cell;

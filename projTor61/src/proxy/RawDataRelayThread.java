@@ -10,6 +10,7 @@ public class RawDataRelayThread extends Thread {
   /// The socket connected to the browser to write data to.
   public final Socket writeSocket;
   /// The socket connected to the server to read data from.
+  private BufferedStreamReader reader;
   public final Socket readSocket;
   private int streamId;
   private int circuitId;
@@ -20,10 +21,26 @@ public class RawDataRelayThread extends Thread {
       @param writeSocket The TCP socket to write data to (must not be null). */
   public RawDataRelayThread(Socket writeSocket, Socket readSocket, int streamId, int circuitId) {
     this.writeSocket = writeSocket;
-    this.readSocket = readSocket;
+    try {
+      this.reader = new BufferedStreamReader(readSocket.getInputStream());
+    } catch (IOException e) {
+      System.out.println("FATAL ERROR!!!");
+      reader = null;
+      // TODO: handle better
+    }
     this.streamId = streamId;
     this.circuitId = circuitId;
     this.killed = false;
+    this.readSocket = readSocket;
+  }
+
+  public RawDataRelayThread(Socket writeSocket, BufferedStreamReader reader, int streamId, int circuitId) {
+    this.writeSocket = writeSocket;
+    this.reader = reader;
+    this.streamId = streamId;
+    this.circuitId = circuitId;
+    this.killed = false;
+    this.readSocket = null;
   }
 
   @Override
@@ -45,7 +62,7 @@ public class RawDataRelayThread extends Thread {
 
     try {
       int curr;
-      while ((curr = readSocket.getInputStream().read()) != -1) {
+      while ((curr = reader.read()) != -1) {
         message[offset] = (byte) curr;
         offset++;
         if (offset == 512) {
@@ -68,7 +85,7 @@ public class RawDataRelayThread extends Thread {
       }
     } catch (IOException e) {
       try {
-        readSocket.close();
+        //readSocket.close();
         writeSocket.close();
       } catch (IOException e2) {
         // no op

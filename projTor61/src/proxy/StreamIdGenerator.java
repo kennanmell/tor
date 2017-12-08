@@ -7,8 +7,8 @@ public class StreamIdGenerator {
   public static int next() {
     synchronized (lock) {
       nextStreamId++;
-      if (nextStreamId == 0) {
-        nextStreamId++;
+      if (nextStreamId == 30000) {
+        nextStreamId = 1;
       }
       return nextStreamId;
     }

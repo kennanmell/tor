@@ -104,6 +104,11 @@ public class TorSocketReaderThread extends Thread {
           System.out.println(new String(cell));
           break;
         }
+        if (TorCommand.fromByte(cell[2]) == null) {
+          System.out.println("ERROR HERE: " + cell[2]);
+          System.out.println(Arrays.toString(cell));
+          System.out.println(new String(cell));
+        }
         System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
         if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
           System.out.println(RelayCommand.fromByte(cell[13]).toString());
@@ -200,6 +205,7 @@ public class TorSocketReaderThread extends Thread {
                                               break;
                                             }
                                           }
+                                          System.out.println(Arrays.toString(cell));
                                           final String ip = (new String(cell)).
                                               substring(14, colonSeparatorIndex);
                                           final int iport = Integer.parseInt((new String(cell)).

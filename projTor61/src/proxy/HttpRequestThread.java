@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
 
 // This thread (sends to tor socket RouterEntry.getSocket() gatewayEntry):
 // Relay BEGIN w/ server ip:port (get stream id from router info)

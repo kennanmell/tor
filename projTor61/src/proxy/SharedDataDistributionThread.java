@@ -29,8 +29,9 @@ public class SharedDataDistributionThread extends Thread {
             pendingRequests.get(streamId).put(buf);
           }
         }
+        System.out.println("size of buf: " + buf.length);
       }
-      System.out.println("not 512 bytes");
+      System.out.println("size of buf: " + buf.length);
     } catch (IOException e) {
       // TODO: better error handling
       e.printStackTrace();

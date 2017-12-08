@@ -7,12 +7,13 @@ import java.nio.ByteBuffer;
 public class TorCommandManager {
   // Size of a Tor61 cell
   public static final int CELLSIZE = 512;
+  public static final int MAX_U_SHORT = MAX_U_SHORT;
   
   // returns a byte array of size 512 with circuitID and command inserted
   // as first two fields.
   // treat circuitID as an unsigned short 
   public static byte[] makeCommonHeader(int circuitID, TorCommand command) {
-  	if (circuitID > 65535) {
+  	if (circuitID > MAX_U_SHORT) {
   		return null;
   	}
 	  byte[] cell = new byte[CELLSIZE];
@@ -43,7 +44,7 @@ public class TorCommandManager {
 
   // Returns byte array of CREATE cell.
   public static byte[] makeCreate(int circuitID) {
-	if (circuitID > 65535) {
+	if (circuitID > MAX_U_SHORT) {
 		return null;
 	}
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATE);
@@ -51,7 +52,7 @@ public class TorCommandManager {
 
   // Returns byte array of CREATED cell.
   public static byte[] makeCreated(int circuitID) {
-	if (circuitID > 65535) {
+	if (circuitID > MAX_U_SHORT) {
 		return null;
 	}
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATED);
@@ -59,7 +60,7 @@ public class TorCommandManager {
 
   // Returns byte array of CREATED_FAILED cell.
   public static byte[] makeCreatedFailed(int circuitID) {
-	if (circuitID > 65535) {
+	if (circuitID > MAX_U_SHORT) {
 		return null;
 	}
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATE_FAILED);
@@ -67,7 +68,7 @@ public class TorCommandManager {
 
   // Returns byte array of DESTROY cell.
   public static byte[] makeDestroy(int circuitID) {
-	if (circuitID > 65535) {
+	if (circuitID > MAX_U_SHORT) {
 		return null;
 	}
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.DESTROY);
@@ -75,7 +76,7 @@ public class TorCommandManager {
 
   // Returns byte array of RELAY cell.
   public static byte[] makeRelay(int circuitID, int streamID, RelayCommand relayCommand, byte[] body) {
-  	if (streamID > 65535 || circuitID > 65535) {
+  	if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
   		return null;
   	}
 	byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
@@ -86,7 +87,7 @@ public class TorCommandManager {
 
   // Returns byte array of RELAY CONNECTED cell.
   public static byte[] makeConnected(int circuitID, int streamID) {
-	if (streamID > 65535 || circuitID > 65535) {
+	if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
 	  	return null;
 	}
     byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);

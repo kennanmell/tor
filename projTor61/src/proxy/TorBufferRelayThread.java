@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
 
 /** RawDataRelayThread reads data byte-by-byte from from a TCP socket until it closes, and
     writes that data byte-by-byte to another TCP socket. Can be used for HTTP connect requests. */
@@ -28,6 +29,8 @@ public class TorBufferRelayThread extends Thread {
     while (true) {
       try {
         byte[] curr = buf.poll(25000, TimeUnit.MILLISECONDS);
+        System.out.println("Tor Buffer Relay cell:");
+        System.out.println(Arrays.toString(curr));
         if (curr == null) {
           System.out.println("buff is null");
         }

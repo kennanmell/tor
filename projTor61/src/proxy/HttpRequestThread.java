@@ -229,6 +229,7 @@ public class HttpRequestThread extends Thread {
       the first line in bufferedLines. Adds header lines it reads while looking for the host line
       to bufferedLines. Returns null if there is an error or the server is invalid. */
   private boolean openTorConnection(BufferedStreamReader reader, List<String> bufferedLines) throws IOException {
+    System.out.println("attempting to open tor connection");
     String line;
     while ((line = reader.readLine()) != null) {
       bufferedLines.add(line);

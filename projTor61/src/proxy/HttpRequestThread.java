@@ -300,7 +300,7 @@ public class HttpRequestThread extends Thread {
      System.out.println("wrote begin");
 
     try {
-      byte[] connectedCell = responseBuf.poll(25000, TimeUnit.MILLISECONDS);
+      byte[] connectedCell = responseBuf.take();//poll(25000, TimeUnit.MILLISECONDS);
       if (connectedCell != null && connectedCell[2] == 3 && connectedCell[13] == 4) {
         System.out.println("Received CONNECTED relay cell");
       } else {

@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 public class TorCommandManager {
   // Size of a Tor61 cell
   public static final int CELLSIZE = 512;
-  public static final int MAX_U_SHORT = MAX_U_SHORT;
+  public static final int MAX_U_SHORT = 65535;
   
   // returns a byte array of size 512 with circuitID and command inserted
   // as first two fields.

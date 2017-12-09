@@ -233,6 +233,7 @@ public class HttpRequestThread extends Thread {
     String line;
     while ((line = reader.readLine()) != null) {
       bufferedLines.add(line);
+      System.out.println(line);
 
       if (line.equals("\n") || line.equals("\r\n")) {
         line = null;

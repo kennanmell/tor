@@ -304,6 +304,9 @@ public class HttpRequestThread extends Thread {
       if (connectedCell != null && connectedCell[2] == 3 && connectedCell[13] == 4) {
         System.out.println("Received CONNECTED relay cell");
       } else {
+        System.out.println("------------------");
+        System.out.println(Arrays.toString(connectedCell));
+        System.out.println("-------------------");
         System.out.println("Received unkown cell instead of connected");
       }
       return connectedCell != null && connectedCell[2] == 3 && connectedCell[13] == 4;

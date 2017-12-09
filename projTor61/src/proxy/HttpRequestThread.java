@@ -294,7 +294,8 @@ public class HttpRequestThread extends Thread {
     }
 
     System.out.println("BEGIN CELL:");
-    System.out.println(Arrays.toString(beginCell));
+    System.out.println(new String(TorCommandManager.getBody(beginCell));
+
 
     SharedDataDistributionThread.sharedInstance().addStream(this.streamId, this.responseBuf);
     serverSocket.getOutputStream().write(beginCell);

@@ -294,7 +294,7 @@ public class HttpRequestThread extends Thread {
     }
 
     System.out.println("BEGIN CELL:");
-    System.out.println(new String(TorCommandManager.getBody(beginCell));
+    System.out.println(new String(getBody(beginCell)));
 
 
     SharedDataDistributionThread.sharedInstance().addStream(this.streamId, this.responseBuf);
@@ -309,5 +309,18 @@ public class HttpRequestThread extends Thread {
     } catch (InterruptedException e) {
       return false;
     }
+  }
+
+  // Returns body of RELAY
+  public static byte[] getBody(byte[] cell) {
+    int length = getBodyLength(cell);
+    byte[] ret = new byte[length];
+    System.arraycopy(cell, 14, ret, 0, length);
+    return ret;
+  }
+
+  // Returns length of cell body.
+  public static int getBodyLength(byte[] cell) {
+    return (int) (ByteBuffer.wrap(cell).getShort(11) & 0xffff);
   }
 }

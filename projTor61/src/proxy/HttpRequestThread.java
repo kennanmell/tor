@@ -294,11 +294,10 @@ public class HttpRequestThread extends Thread {
       beginCell[i] = bodyData[i - 14];
     }
 
-    System.out.println("BEGIN CELL: " + new String(getBody(beginCell)));
-
-
     SharedDataDistributionThread.sharedInstance().addStream(this.streamId, this.responseBuf);
+    System.out.println("attempting to write begin");
     serverSocket.getOutputStream().write(beginCell);
+     System.out.println("wrote begin");
 
     try {
       byte[] connectedCell = responseBuf.poll(25000, TimeUnit.MILLISECONDS);
@@ -309,18 +308,5 @@ public class HttpRequestThread extends Thread {
     } catch (InterruptedException e) {
       return false;
     }
-  }
-
-  // Returns body of RELAY
-  public static byte[] getBody(byte[] cell) {
-    int length = getBodyLength(cell);
-    byte[] ret = new byte[length];
-    System.arraycopy(cell, 14, ret, 0, length);
-    return ret;
-  }
-
-  // Returns length of cell body.
-  public static int getBodyLength(byte[] cell) {
-    return (int) (ByteBuffer.wrap(cell).getShort(11) & 0xffff);
   }
 }

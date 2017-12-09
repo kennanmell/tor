@@ -8,18 +8,6 @@ public class TorCommandManager {
   // Size of a Tor61 cell
   public static final int CELLSIZE = 512;
   public static final int MAX_U_SHORT = 65535;
-  
-  // returns a byte array of size 512 with circuitID and command inserted
-  // as first two fields.
-  // treat circuitID as an unsigned short 
-  public static byte[] makeCommonHeader(int circuitID, TorCommand command) {
-  	if (circuitID > MAX_U_SHORT) {
-  		return null;
-  	}
-	  byte[] cell = new byte[CELLSIZE];
-  	ByteBuffer.wrap(cell).putShort(0, (short) circuitID).put(2, command.toByte());
-  	return cell;
-  }
 
   // Returns byte array of OPEN cell.
   public static byte[] makeOpen(int openerID, int openedID) {
@@ -44,33 +32,33 @@ public class TorCommandManager {
 
   // Returns byte array of CREATE cell.
   public static byte[] makeCreate(int circuitID) {
-	if (circuitID > MAX_U_SHORT) {
-		return null;
-	}
+	  if (circuitID > MAX_U_SHORT) {
+		  return null;
+	  }
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATE);
   }
 
   // Returns byte array of CREATED cell.
   public static byte[] makeCreated(int circuitID) {
-	if (circuitID > MAX_U_SHORT) {
-		return null;
-	}
+	  if (circuitID > MAX_U_SHORT) {
+		  return null;
+	  }
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATED);
   }
 
   // Returns byte array of CREATED_FAILED cell.
   public static byte[] makeCreatedFailed(int circuitID) {
-	if (circuitID > MAX_U_SHORT) {
-		return null;
-	}
+	  if (circuitID > MAX_U_SHORT) {
+		  return null;
+	  }
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.CREATE_FAILED);
   }
 
   // Returns byte array of DESTROY cell.
   public static byte[] makeDestroy(int circuitID) {
-	if (circuitID > MAX_U_SHORT) {
-		return null;
-	}
+	  if (circuitID > MAX_U_SHORT) {
+		  return null;
+	  }
     return TorCommandManager.makeCommonHeader(circuitID, TorCommand.DESTROY);
   }
 
@@ -79,20 +67,92 @@ public class TorCommandManager {
   	if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
   		return null;
   	}
-	 byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
+	  byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
   	ByteBuffer.wrap(cell).putShort(3, (short) streamID).putShort(11, (short) body.length).put(13, relayCommand.toByte());
   	System.arraycopy(body, 0, cell, 14, body.length);
   	return cell;
   }
 
+  // Returns byte array of RELAY cell.
+  public static byte[] makeRelay(int circuitID, int streamID, RelayCommand relayCommand) {
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
+    ByteBuffer.wrap(cell).putShort(3, (short) streamID).put(13, relayCommand.toByte());
+    return cell;
+  }
+
+  // Returns byte array of RELAY DATA cell.
+  public static byte[] makeData(int circuitID, int streamID, byte[] body) {
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    return makeRelay(circuitID, streamID, RelayCommand.DATA, body);
+  }
+
+  // Returns byte array of RELAY END cell.
+  public static byte[] makeEnd(int circuitID, int streamID) {
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    return makeRelay(circuitID, streamID, RelayCommand.END);
+  }
+
   // Returns byte array of RELAY CONNECTED cell.
   public static byte[] makeConnected(int circuitID, int streamID) {
-	if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
-	  	return null;
-	}
-    byte[] cell = TorCommandManager.makeCommonHeader(circuitID, TorCommand.RELAY);
-    ByteBuffer.wrap(cell).putShort(3, (short) streamID).put(13, RelayCommand.CONNECTED.toByte());
-    return cell;
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    return makeRelay(circuitID, streamID, RelayCommand.CONNECTED);
+  }
+
+  // Returns byte array of RELAY BEGIN cell.
+  public static byte[] makeBegin(int circuitID, int streamID, String hostIdentifier, int port) {
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    byte[] body = (hostIdentifier + ":" + port).getBytes();
+    byte[] nullString = new byte[body.length + 1];
+    System.arraycopy(body, 0, nullString, 0, body.length);
+    nullString[nullString.length - 1] = '\0';
+    return makeRelay(circuitID, streamID, RelayCommand.BEGIN, nullString);
+  }
+
+  // Returns byte array of RELAY BEGIN cell.
+  public static byte[] makeExtend(int circuitID, int streamID, String address, int agentID) {
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    byte[] output = new byte[address.length() + 5];
+    byte[] addressBytes = address.getBytes();
+    System.arraycopy(addressBytes, 0, output, 0, addressBytes.length);
+    ByteBuffer.wrap(output).putChar(addressBytes.length, '\0').putInt(addressBytes.length + 1, agentID);
+    return makeRelay(circuitID, streamID, RelayCommand.EXTEND, output);
+  }
+
+  // Returns byte array of EXTENDED cell.
+  public static byte[] makeExtended(int circuitID, int streamID) {
+	  if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+	    return null;
+	  }
+    return makeRelay(circuitID, streamID, RelayCommand.EXTENDED);
+  }
+
+  // Returns byte array of RELAY BEGIN_FAILED cell.
+  public static byte[] makeBeginFailed(int circuitID, int streamID) {
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    return makeRelay(circuitID, streamID, RelayCommand.BEGIN_FAILED);
+  }
+
+  // Returns byte array of RELAY EXTEND_FAILED cell.
+  public static byte[] makeExtendFailed(int circuitID, int streamID) {
+    if (streamID > MAX_U_SHORT || circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    return makeRelay(circuitID, streamID, RelayCommand.EXTEND_FAILED);
   }
 
   // Returns Tor Command of cell.
@@ -169,5 +229,14 @@ public class TorCommandManager {
     byte[] ret = new byte[length];
     System.arraycopy(cell, 14, ret, 0, length);
     return ret;
+  }
+
+  private static byte[] makeCommonHeader(int circuitID, TorCommand command) {
+    if (circuitID > MAX_U_SHORT) {
+      return null;
+    }
+    byte[] cell = new byte[CELLSIZE];
+    ByteBuffer.wrap(cell).putShort(0, (short) circuitID).put(2, command.toByte());
+    return cell;
   }
 }

@@ -94,8 +94,9 @@ public class HttpRequestThread extends Thread {
         clientSocket.setSoTimeout(0);
         serverSocket.setSoTimeout(0);
         System.out.println("SENT OK (2)");
-        (new RawDataRelayThread(clientSocket, serverSocket, streamId, circuitId)).start();
         (new RawDataRelayThread(serverSocket, clientSocket, streamId, circuitId)).start();
+        (new RawDataRelayThread(clientSocket, serverSocket, streamId, circuitId)).run();
+        
       } else {
         if (serverSocket == null) {
           System.out.println("browser socket was null");

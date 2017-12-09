@@ -302,6 +302,7 @@ public class HttpRequestThread extends Thread {
     try {
       System.out.println("attempting to take from buffer");
       byte[] connectedCell = responseBuf.take();//poll(25000, TimeUnit.MILLISECONDS);
+      System.out.println("not blocked by buffer");
       if (connectedCell != null && connectedCell[2] == 3 && connectedCell[13] == 4) {
         System.out.println("Received CONNECTED relay cell");
       } else {

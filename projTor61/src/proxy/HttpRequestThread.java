@@ -233,8 +233,6 @@ public class HttpRequestThread extends Thread {
     String line;
     while ((line = reader.readLine()) != null) {
       bufferedLines.add(line);
-      System.out.println("buffer");
-      System.out.println(line);
 
       if (line.equals("\n") || line.equals("\r\n")) {
         line = null;
@@ -248,6 +246,7 @@ public class HttpRequestThread extends Thread {
     }
 
     if (bufferedLines.isEmpty()) {
+      System.out.println("buffered lines empty");
       return false;
     }
 
@@ -293,6 +292,9 @@ public class HttpRequestThread extends Thread {
     for (int i = 14; i < 14 + bodyData.length; i++) {
       beginCell[i] = bodyData[i - 14];
     }
+
+    System.out.println("BEGIN CELL:");
+    System.out.println(Arrays.toString(beginCell));
 
     SharedDataDistributionThread.sharedInstance().addStream(this.streamId, this.responseBuf);
     serverSocket.getOutputStream().write(beginCell);

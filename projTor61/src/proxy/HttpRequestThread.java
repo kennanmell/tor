@@ -294,8 +294,7 @@ public class HttpRequestThread extends Thread {
       beginCell[i] = bodyData[i - 14];
     }
 
-    System.out.println("BEGIN CELL:");
-    System.out.println(new String(getBody(beginCell)));
+    System.out.println("BEGIN CELL: " + new String(getBody(beginCell)));
 
 
     SharedDataDistributionThread.sharedInstance().addStream(this.streamId, this.responseBuf);

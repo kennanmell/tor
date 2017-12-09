@@ -303,9 +303,12 @@ public class HttpRequestThread extends Thread {
       byte[] connectedCell = responseBuf.poll(25000, TimeUnit.MILLISECONDS);
       if (connectedCell != null && connectedCell[2] == 3 && connectedCell[13] == 4) {
         System.out.println("Received CONNECTED relay cell");
+      } else {
+        System.out.println("Received unkown cell instead of connected");
       }
       return connectedCell != null && connectedCell[2] == 3 && connectedCell[13] == 4;
     } catch (InterruptedException e) {
+      System.out.println("INTERRUPTED");
       return false;
     }
   }

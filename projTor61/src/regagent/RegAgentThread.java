@@ -127,7 +127,7 @@ public class RegAgentThread extends Thread {
   public List<Service> getAllServices() {
     List<Service> candidates = new ArrayList<>(Arrays.asList(requestHandler.fetchServicesBeginningWith("Tor61Router-4391-")));
     // TODO: take all
-    candidates = new ArrayList<>(Arrays.asList(requestHandler.fetchServicesBeginningWith("Tor61Router-4589-")));
+    candidates = new ArrayList<>(Arrays.asList(requestHandler.fetchServicesBeginningWith("Tor61Router-3471-")));
     // Register the service.
     InetAddress localhostIp = null;
     try {
@@ -139,7 +139,7 @@ public class RegAgentThread extends Thread {
       service = new Service(localhostIp, iport, agentId, "Tor61Router-" + String.format("%04d", groupNo) + "-" +
               String.format("%04d", instanceNo));
     }
-    candidates.add(service);
+    //candidates.add(service);
     return candidates;
   }
 }

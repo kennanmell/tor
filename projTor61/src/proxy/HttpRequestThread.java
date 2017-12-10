@@ -69,10 +69,10 @@ public class HttpRequestThread extends Thread {
       boolean opened = openTorConnection(reader, bufferedLines);
 
       if (line.trim().toLowerCase().startsWith("connect")) {
-        System.out.println("CONNECT received from tor gateway");
+        System.out.println("A");
         if (!opened) {
+          System.out.println("B");
           clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
-          System.out.println("BAD GATEWAY WRITING 502");
           return;
         }
 
@@ -86,17 +86,20 @@ public class HttpRequestThread extends Thread {
             }
           }
         }
-
+        System.out.println("C");
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-        System.out.println("SENT OK (1)");
         clientSocket.setSoTimeout(0);
         serverSocket.setSoTimeout(0);
-        System.out.println("SENT OK (2)");
         (new RawDataRelayThread(clientSocket, serverSocket, streamId, circuitId)).start();
-        (new RawDataRelayThread(serverSocket, clientSocket, streamId, circuitId)).run();
+        System.out.println("D");
+        BufferedStreamReader responseReader = new BufferedStreamReader(responseBuf);
+        int curr;
+        while ((curr = responseReader.read()) != -1) {
+          System.out.print("E");
+          clientSocket.getOutputStream().write(curr);
+        }
       } else {
         if (serverSocket == null) {
-          System.out.println("browser socket was null");
           return;
         }
 
@@ -104,8 +107,6 @@ public class HttpRequestThread extends Thread {
           // Send the lines of the header that have been read.
           writeTorData(serverSocket, modifyHttpHeaderLine(bufferedLines.remove(0)).getBytes());
         }
-
-        System.out.println("sent buffered header lines");
 
         handleHttpMessage(clientSocket, serverSocket);
         handleHttpResponse(clientSocket);
@@ -190,7 +191,7 @@ public class HttpRequestThread extends Thread {
       }
     }
 
-    (new RawDataRelayThread(writeSocket, readSocket, streamId, circuitId)).run();
+    //(new RawDataRelayThread(writeSocket, readSocket, streamId, circuitId)).run();
   }
 
   private void handleHttpResponse(Socket writeSocket) throws IOException {

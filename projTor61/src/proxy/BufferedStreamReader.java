@@ -123,6 +123,9 @@ public class BufferedStreamReader {
       if (leftover != null) { // TODO: remove this loop to speed up
         if (leftover.size() == 1) {
           int result = leftover.get(0);
+          if (result == -1) {
+            System.out.println("WOW 1");
+          }
           leftover = null;
           return result;
         } else {
@@ -133,9 +136,11 @@ public class BufferedStreamReader {
         try {
           buf = bufStream.poll(25000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
+          System.out.println("ERROR 1");
           return -1;
         }
         if (buf == null || buf[2] != 3 || buf[13] != 2) {
+          System.out.println("ERROR 2");
           return -1;
         }
         final int length = ((buf[11] & 0xFF) << 8) | (buf[12] & 0xFF);
@@ -145,12 +150,17 @@ public class BufferedStreamReader {
             leftover.add(buf[i + 15]);
           }
         }
+        if (buf[14] == -1) {
+          System.out.println("WOW 2");
+        }
         return buf[14];
       }
     }
     try {
       return inputStream.read();
     } catch (IOException e) {
+      e.printStackTrace();
+      System.out.println("ERROR 3");
       return -1;
     }
   }

@@ -123,6 +123,9 @@ public class TorMain {
     int extendSuccesses = 0;
     while (extendSuccesses < 3 && !candidates.isEmpty()) { // todo: can't have empty
       Service extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
+      if (extendSuccesses == 1) {
+        extendServiceCandidate = candidates.get(candidates.size() - 1);
+      }
       System.out.println("Main: extending connection with " + extendServiceCandidate);
       try {
         // Send relay extend.

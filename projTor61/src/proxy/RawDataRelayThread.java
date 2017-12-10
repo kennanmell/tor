@@ -90,6 +90,11 @@ public class RawDataRelayThread extends Thread {
         writeSocket.getOutputStream().write(message);
       }
     } catch (IOException e) {
+      try {
+        readSocket.close();
+      } catch (IOException e2) {
+        // no op
+      }
       // no op
     }
 /*

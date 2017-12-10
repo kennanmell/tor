@@ -53,6 +53,7 @@ public class HttpRequestThread extends Thread {
   @Override
   public void run() {
     try {
+      // read from browser socket
       BufferedStreamReader reader = new BufferedStreamReader(clientSocket.getInputStream());
       String line = reader.readLine();
       if (line == null) {
@@ -68,8 +69,10 @@ public class HttpRequestThread extends Thread {
       boolean opened = openTorConnection(reader, bufferedLines);
 
       if (line.trim().toLowerCase().startsWith("connect")) {
+        System.out.println("CONNECT received from tor gateway");
         if (!opened) {
           clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
+          System.out.println("BAD GATEWAY WRITING 502");
           return;
         }
 
@@ -85,12 +88,15 @@ public class HttpRequestThread extends Thread {
         }
 
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+        System.out.println("SENT OK (1)");
         clientSocket.setSoTimeout(0);
         serverSocket.setSoTimeout(0);
+        System.out.println("SENT OK (2)");
         (new RawDataRelayThread(clientSocket, serverSocket, streamId, circuitId)).start();
         (new RawDataRelayThread(serverSocket, clientSocket, streamId, circuitId)).run();
       } else {
         if (serverSocket == null) {
+          System.out.println("browser socket was null");
           return;
         }
 
@@ -98,6 +104,8 @@ public class HttpRequestThread extends Thread {
           // Send the lines of the header that have been read.
           writeTorData(serverSocket, modifyHttpHeaderLine(bufferedLines.remove(0)).getBytes());
         }
+
+        System.out.println("sent buffered header lines");
 
         handleHttpMessage(clientSocket, serverSocket);
         handleHttpResponse(clientSocket);

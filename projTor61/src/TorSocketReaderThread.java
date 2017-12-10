@@ -93,10 +93,7 @@ public class TorSocketReaderThread extends Thread {
 
       loop: while (true) {
         int tempc = readSocket.getInputStream().read(cell);
-        System.out.println(Arrays.toString(cell));
-        System.out.println(new String(cell));
         if (tempc != 512) {
-          System.out.println("tempc: " + tempc);
           break;
         }
         //System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
@@ -203,7 +200,7 @@ public class TorSocketReaderThread extends Thread {
                                            }
 
                                            RawDataRelayThread responseRelayThread = new RawDataRelayThread(
-                                               readSocket, webSocket, relayId & 0xFFFF, circuitId); // TODO: ok to write directly to this socket?
+                                               readSocket, webSocket, relayId, circuitId, responseRelayForStream); // TODO: ok to write directly to this socket?
                                            responseRelayThread.start();
                                            responseRelayForStream.put(relayId, responseRelayThread);
                                            message[13] = RelayCommand.CONNECTED.toByte();
@@ -214,10 +211,8 @@ public class TorSocketReaderThread extends Thread {
                                            Socket webSocket = responseRelayForStream.get(relayId).readSocket;
                                            // TODO: ok to write directly to this socket?
                                            // TODO: how to demultiplex if simultaneous requests to same server from same stream?
-                                           System.out.println("in data");
                                            webSocket.getOutputStream().write(message, 14, 512 - 14);
                                          } else {
-                                           System.out.println("in else");
                                          }
                                          break;
                             case END:    if (responseRelayForStream.containsKey(relayId)) {

@@ -25,31 +25,19 @@ public class SharedDataDistributionThread extends Thread {
       byte[] buf = new byte[512];
       while (readSocket.getInputStream().read(buf) == 512) {
         int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
-        System.out.println("GOT RESPONSE");
         synchronized (pendingRequests) {
           if (pendingRequests.containsKey(streamId)) {
-            System.out.println("PUT RESPONSE");
-            System.out.println(Arrays.toString(buf));
-            System.out.println(new String(buf).substring(14));
-            if (buf == null) {
-              System.out.println("putting in null buf from shared thread");
-            }
-            System.out.println("bytes before putting in buffer: ");
-            System.out.println(Arrays.toString(buf));
             pendingRequests.get(streamId).put(buf);
-            System.out.println("put buffer in map");
+            buf = new byte[512];
           }
         }
-        System.out.println("size of buf: " + buf.length);
       }
-      System.out.println("size of buf: " + buf.length);
     } catch (IOException e) {
       // TODO: better error handling
       e.printStackTrace();
       return;
     } catch (InterruptedException e) {
       // TODO: better error handling
-      System.out.println("interruptederror");
       return;
     }
   }
@@ -61,9 +49,6 @@ public class SharedDataDistributionThread extends Thread {
   }
 
   public void addStream(int id, BlockingQueue<byte[]> pending) {
-    if (pending == null) {
-      System.out.println("Putting in null blocking queue from shared addstream.");
-    }
     pendingRequests.put(id, pending);
   }
 

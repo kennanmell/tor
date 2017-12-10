@@ -52,7 +52,6 @@ public class HttpRequestThread extends Thread {
 
   @Override
   public void run() {
-    System.out.println("HTTPR: in run");
     try {
       BufferedStreamReader reader = new BufferedStreamReader(clientSocket.getInputStream());
       String line = reader.readLine();
@@ -119,7 +118,6 @@ public class HttpRequestThread extends Thread {
   private byte[] dataCell = new byte[512];
   private int dataCellOffset = 14;
   private void writeTorData(Socket writeSocket, byte[] data) throws IOException {
-    System.out.println("HTTPR: starting write");
     dataCell[0] = (byte) (circuitId >> 8);
     dataCell[1] = (byte) circuitId;
     dataCell[2] = 3; // relay
@@ -175,7 +173,6 @@ public class HttpRequestThread extends Thread {
 
   /** Handles an HTTP header and body sent from readSocket to writeSocket. */
   private void handleHttpMessage(Socket readSocket, Socket writeSocket) throws IOException {
-    System.out.println("HTTPR: starting handle message");
     BufferedStreamReader reader = new BufferedStreamReader(readSocket.getInputStream());
     String line;
     while ((line = reader.readLine()) != null) {
@@ -185,12 +182,10 @@ public class HttpRequestThread extends Thread {
       }
     }
 
-    (new RawDataRelayThread(readSocket, writeSocket, streamId, circuitId)).run();
-    System.out.println("HTTPR: ending handle message");
+    (new RawDataRelayThread(writeSocket, readSocket, streamId, circuitId)).run();
   }
 
   private void handleHttpResponse(Socket writeSocket) throws IOException {
-    System.out.println("HTTPR: starting handle response");
     BufferedStreamReader reader = new BufferedStreamReader(responseBuf);
     String line;
     while ((line = reader.readLine()) != null) {
@@ -200,8 +195,11 @@ public class HttpRequestThread extends Thread {
       }
     }
 
-    (new RawDataRelayThread(writeSocket, reader, streamId, circuitId)).run();
-    System.out.println("HTTPR: ending handle response");
+    int curr;
+    while ((curr = reader.read()) != -1) {
+      writeSocket.getOutputStream().write(curr);
+    }
+    //(new RawDataRelayThread(writeSocket, reader, streamId, circuitId)).run();
   }
 
   /** Parses an HTTP header line to downgrade to HTTP/1.0 and Connection: close.

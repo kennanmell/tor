@@ -79,40 +79,23 @@ public class TorSocketReaderThread extends Thread {
     try {
       byte[] cell = new byte[512];
       if (!SocketManager.socketWasInitiated(readSocket)) {
-        System.out.println(this.toString() + ": waiting for OPEN");
         // If we did not initiate, check for open to make sure other end is also a tor node.
         if (readSocket.getInputStream().read(cell) != 512) {
-          System.out.println(this.toString() + ": OPEN FAILED 1");
           SocketManager.removeSocket(readSocket);
           return;
         }
 
         if (TorCommand.fromByte(cell[2]) != TorCommand.OPEN || !handleOpenCommand(cell)) {
-          System.out.println(this.toString() + ": OPEN FAILED 2");
           SocketManager.removeSocket(readSocket);
           return;
         }
-
-        System.out.println(this.toString() + ": OPENED");
       }
 
-      loop: while (true) {
-        int read = readSocket.getInputStream().read(cell);
-        System.out.println("bytes read: " + read);
-        if (read != 512) {
-          System.out.println(Arrays.toString(cell));
-          System.out.println(new String(cell));
-          break;
-        }
-        if (TorCommand.fromByte(cell[2]) == null) {
-          System.out.println("ERROR HERE: " + cell[2]);
-          System.out.println(Arrays.toString(cell));
-          System.out.println(new String(cell));
-        }
-        System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
-        if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
-          System.out.println(RelayCommand.fromByte(cell[13]).toString());
-        }
+      loop: while (readSocket.getInputStream().read(cell) == 512) {
+        //System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
+        //if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
+        //  System.out.println(RelayCommand.fromByte(cell[13]).toString());
+        //}
         byte[] message = new byte[512]; // copy so original cell doesn't get put on buffer then modified.
         System.arraycopy(cell, 0, message, 0, 512);
         TorCommand command = TorCommand.fromByte(cell[2]);
@@ -125,7 +108,6 @@ public class TorSocketReaderThread extends Thread {
             command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED) {
           BlockingQueue<byte[]> extendBuffer = SocketManager.getRelayExtendBufferForSocket(readSocket);
           if (extendBuffer != null) {
-            System.out.println("forwarding command to buffer");
             extendBuffer.add(message);
             continue loop;
           }
@@ -143,9 +125,7 @@ public class TorSocketReaderThread extends Thread {
         if (!hopTable.containsKey(currentHop)) {
           // This thread doesn't have the circuit mapping, so it can only handle a create
           // cell or relay extend cell in this case.
-          System.out.println(this.toString() + ": hop table doesn't have hop");
           if (command == TorCommand.CREATE) {
-            System.out.println(this.toString() + ": handling CREATE, sending CREATED");
             hopTable.put(currentHop, null);
             message[2] = TorCommand.CREATED.toByte();
             SocketManager.writeToSocket(readSocket, message);
@@ -159,7 +139,6 @@ public class TorSocketReaderThread extends Thread {
                        (command == TorCommand.RELAY && (candidateRelayCommand == RelayCommand.CONNECTED ||
                        candidateRelayCommand == RelayCommand.BEGIN_FAILED || candidateRelayCommand == RelayCommand.EXTENDED ||
                        candidateRelayCommand == RelayCommand.EXTEND_FAILED || candidateRelayCommand == RelayCommand.DATA))))) {
-          System.out.println("in else if");
           // This thread has the mapping and it's not at the end of the circuit, so just relay
           // the message.
           // The above check also makes sure to only forward to browser when command is relevant to it.
@@ -171,7 +150,6 @@ public class TorSocketReaderThread extends Thread {
             hopTable.remove(currentHop);
           }
         } else {
-          System.out.println("in end else");
           // This thread has the mapping and it's at the end of the circuit, so it needs
           // to handle the message.
           switch (command) {
@@ -184,15 +162,12 @@ public class TorSocketReaderThread extends Thread {
                           relayId |= (cell[3] & 0xFF) << 8;
                           relayId |= cell[4] & 0xFF;
                           switch (RelayCommand.fromByte(cell[13])) {
-                            case BEGIN: System.out.println("in BEGIN");
-                                        message[11] = 0;
+                            case BEGIN: message[11] = 0;
                                         message[12] = 0;
                                         if (responseRelayForStream.containsKey(relayId)) {
-                                          System.out.println("BEGIN failed 1");
                                           message[13] = RelayCommand.BEGIN_FAILED.toByte();
                                           SocketManager.writeToSocket(readSocket, message);
                                         } else {
-                                          System.out.println("Trying to open port");
                                           int bodyLength = cell[12] & 0xFF;
                                           bodyLength |= (cell[11] & 0xFF) << 8;
                                           int colonSeparatorIndex = 0;
@@ -205,49 +180,34 @@ public class TorSocketReaderThread extends Thread {
                                               break;
                                             }
                                           }
-                                          System.out.println(Arrays.toString(cell));
                                           final String ip = (new String(cell)).
                                               substring(14, colonSeparatorIndex);
                                           final int iport = Integer.parseInt((new String(cell)).
                                               substring(colonSeparatorIndex + 1, endIndex));
-                                          System.out.println("body length: " + bodyLength + " csi: " + colonSeparatorIndex + " endIndex: " + endIndex);
-                                          System.out.println("ip: " + ip + " iport: " + iport);
-                                          System.out.println(Arrays.toString(cell));
                                           Socket webSocket;
                                           try {
                                             webSocket = new Socket(ip, iport);
                                           } catch (IOException e) {
-                                            System.out.println("failed to open web socket");
                                             message[13] = RelayCommand.BEGIN_FAILED.toByte();
                                             SocketManager.writeToSocket(readSocket, message);
                                             continue loop;
                                           }
 
-                                          System.out.println("successfully created web socket");
                                           RawDataRelayThread responseRelayThread = new RawDataRelayThread(
                                               readSocket, webSocket, relayId & 0xFFFF, circuitId); // TODO: ok to write directly to this socket?
                                           responseRelayThread.start();
-                                          System.out.println("adding map for relay Id: " + relayId);
                                           responseRelayForStream.put(relayId, responseRelayThread);
-                                          System.out.println("sending connected");
                                           message[13] = RelayCommand.CONNECTED.toByte();
                                           SocketManager.writeToSocket(readSocket, message);
                                         }
                                         break;
 
-                            case DATA: System.out.println("in data");
-                                       if (responseRelayForStream.containsKey(relayId)) {
-                                         System.out.println("sending data to server socket");
-                                         System.out.println("relay id: " + relayId);
-                                         System.out.println("circuit id: " + circuitId);
+                            case DATA: if (responseRelayForStream.containsKey(relayId)) {
                                          Socket webSocket = responseRelayForStream.get(relayId).readSocket;
                                          // TODO: ok to write directly to this socket?
                                          // TODO: how to demultiplex if simultaneous requests to same server from same stream?
-                                         System.out.println("SENDING THIS:");
-                                         System.out.println(new String(message).substring(14));
                                          webSocket.getOutputStream().write(message, 14, 512 - 14);
                                        } else {
-                                         System.out.println("no socket to send data to");
                                        }
                                        break;
 
@@ -362,9 +322,7 @@ public class TorSocketReaderThread extends Thread {
         newAgentId |= (extendCell[i] & 0xFF) << ((bodyLength + 13 - i) * 8);
       }
 
-      System.out.println("Relay extend agent: " + newAgentId);
       if (newAgentId == TorMain.agentId) {
-        System.out.println("Relay extend: self loop");
         message[13] = RelayCommand.EXTENDED.toByte();
         SocketManager.writeToSocket(readSocket, message);
         return;
@@ -373,14 +331,10 @@ public class TorSocketReaderThread extends Thread {
       // Get/create socket to extend the hop to.
       Socket nextHopSocket = SocketManager.socketForAgentId(newAgentId);
       if (nextHopSocket == null) {
-        System.out.println("Relay Extend: opening new socket: " + ip + " " + iport);
         try {
           nextHopSocket = new Socket(ip, iport);
         } catch (IOException e) {
-          System.out.println(this.toString() + ": failed to open next hop socket 1");
           e.printStackTrace();
-          System.out.println(ip);
-          System.out.println(iport);
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
           SocketManager.writeToSocket(readSocket, message);
           return;
@@ -425,18 +379,15 @@ public class TorSocketReaderThread extends Thread {
         SocketManager.setRelayExtendBufferForSocket(nextHopSocket, readBuffer);
       }
 
-      System.out.println("Relay Extend: got circuit");
       int newCircuitId = SocketManager.getNextCircuitIdForSocket(nextHopSocket);
 
       byte[] createCell = new byte[512];
       createCell[0] = (byte) (newCircuitId >> 8);
       createCell[1] = (byte) newCircuitId;
       createCell[2] = TorCommand.CREATE.toByte();
-      System.out.println("Relay Extend: writing CREATE");
       SocketManager.writeToSocket(nextHopSocket, createCell);
       byte[] created;
       try {
-        System.out.println("Relay Extend: waiting for CREATE response");
         created = readBuffer.take();
       } catch (InterruptedException e) {
         SocketManager.removeSocket(nextHopSocket);
@@ -445,7 +396,6 @@ public class TorSocketReaderThread extends Thread {
         SocketManager.writeToSocket(readSocket, message);
         return;
       }
-      System.out.println("Relay Extend: got CREATE response");
       if (created[0] != createCell[0] ||
           created[1] != createCell[1] ||
           created[2] != TorCommand.CREATED.toByte()) {

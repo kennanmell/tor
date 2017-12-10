@@ -45,7 +45,6 @@ public class RawDataRelayThread extends Thread {
 
   @Override
   public void run() {
-    System.out.println("starting Raw Data Relay");
     byte[] message = new byte[512];
     message[0] = (byte) (circuitId >> 8);
     message[1] = (byte) circuitId;
@@ -66,7 +65,6 @@ public class RawDataRelayThread extends Thread {
         message[offset] = (byte) curr;
         offset++;
         if (offset == 512) {
-          System.out.println(new String(message));
           writeSocket.getOutputStream().write(message);
           offset = 14;
         }

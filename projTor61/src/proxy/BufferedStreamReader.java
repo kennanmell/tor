@@ -2,6 +2,8 @@ package proxy;
 
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -14,7 +16,7 @@ public class BufferedStreamReader {
   private InputStream inputStream;
 
   private BlockingQueue<byte[]> bufStream;
-  byte[] leftover;
+  List<Byte> leftover;
 
   /** Sole constructor.
       @param inputStream The InputStream to read from. */
@@ -33,18 +35,23 @@ public class BufferedStreamReader {
     String line;
     if (bufStream != null) {
       if (leftover != null) {
-        for (int i = 0; i < leftover.length; i++) {
-          char current = (char) leftover[i];
+        //System.out.println("LEFTOVER:");
+        //System.out.println(new String(leftover));
+        for (int i = 0; i < leftover.size(); i++) {
+          char current = (char) leftover.get(i).byteValue();
           lineBuilder.append(current);
-          if (current == (int) '\n') {
-            byte[] newLeftover = new byte[leftover.length - i];
-            for (int j = i + 1; j < leftover.length; j++) {
-              newLeftover[j - i - 1] = leftover[j];
+          if (current == '\n') {
+            if (i == leftover.size() - 1) {
+              leftover = null;
+              //System.out.print("0. " + lineBuilder);
+              return lineBuilder.toString();
             }
-            leftover = newLeftover;
+            leftover = new ArrayList<>(leftover.subList(i + 1, leftover.size()));
+            //System.out.print("1. " + lineBuilder);
             return lineBuilder.toString();
           }
         }
+        //System.out.println("C2");
         leftover = null;
       }
       while (true) {
@@ -52,12 +59,20 @@ public class BufferedStreamReader {
         try {
           buf = bufStream.poll(25000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-          return null;
+          if (lineBuilder.length() == 0) {
+            //System.out.println("B2");
+            return null;
+          } else {
+            //System.out.print("2. " + lineBuilder);
+            return lineBuilder.toString();
+          }
         }
         if (buf == null || buf[2] != 3 || buf[13] != 2) {
           if (lineBuilder.length() == 0) {
+            //System.out.println("B4");
             return null;
           } else {
+            //System.out.print("3. " + lineBuilder);
             return lineBuilder.toString();
           }
         }
@@ -65,16 +80,17 @@ public class BufferedStreamReader {
         for (int i = 14; i < 14 + length; i++) {
           char current = (char) buf[i];
           lineBuilder.append(current);
-          if (current == (int) '\n') {
+          if (current == '\n') {
             if (i == 13 + length) {
               leftover = null;
+              //System.out.print("4. " + lineBuilder);
               return lineBuilder.toString();
             }
-            byte[] newLeftover = new byte[length - (i - 14)];
-            for (int j = i + 1; j < 14 + length; j++) {
-              newLeftover[j - i - 1] = buf[j];
+            leftover = new ArrayList<>();
+            for (int j = 0; j < length - (i - 14) - 1; j++) {
+              leftover.add(buf[j + i + 1]);
             }
-            leftover = newLeftover;
+            //System.out.print("5. " + lineBuilder);
             return lineBuilder.toString();
           }
         }
@@ -105,18 +121,12 @@ public class BufferedStreamReader {
   public int read() {
     if (bufStream != null) {
       if (leftover != null) { // TODO: remove this loop to speed up
-        if (leftover.length == 1) {
-          int result = leftover[0];
+        if (leftover.size() == 1) {
+          int result = leftover.get(0);
           leftover = null;
           return result;
         } else {
-          byte[] newLeftover = new byte[leftover.length - 1];
-          for (int i = 0; i < newLeftover.length; i++) {
-            newLeftover[i] = leftover[i + 1];
-          }
-          int result = leftover[0];
-          leftover = newLeftover;
-          return result;
+          return leftover.remove(0);
         }
       } else {
         byte[] buf;
@@ -130,11 +140,10 @@ public class BufferedStreamReader {
         }
         final int length = ((buf[11] & 0xFF) << 8) | (buf[12] & 0xFF);
         if (length != 1) {
-          byte[] newLeftover = new byte[length - 1];
-          for (int i = 0; i < newLeftover.length; i++) {
-            newLeftover[i] = buf[i + 15];
+          leftover = new ArrayList<>();
+          for (int i = 0; i < length - 1; i++) {
+            leftover.add(buf[i + 15]);
           }
-          leftover = newLeftover;
         }
         return buf[14];
       }

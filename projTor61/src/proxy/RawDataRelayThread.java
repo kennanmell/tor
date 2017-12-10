@@ -92,7 +92,7 @@ public class RawDataRelayThread extends Thread {
     } catch (IOException e) {
       // no op
     }
-
+/*
     try {
       readSocket.close();
       if (removeWhenDone != null) {
@@ -101,7 +101,7 @@ public class RawDataRelayThread extends Thread {
       //writeSocket.close();
     } catch (IOException e2) {
       // no op
-    }
+    }*/
   }
 
   public void kill() {

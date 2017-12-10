@@ -108,6 +108,15 @@ public class SocketManager {
       @requires `socket` is managed by the `SocketManager`. */
   public static void writeToSocket(Socket socket, byte[] data) {
     synchronized (socketToInfo) {
+      if (socket == null) {
+        System.out.println("ERR1");
+      } else if (socketToInfo.get(socket) == null) {
+        System.out.println("ERR2");
+      } else if (socketToInfo.get(socket).t == null) {
+        System.out.println("ERR3");
+      } else if (socketToInfo.get(socket).t.buf == null) {
+        System.out.println("ERR4");
+      }
       socketToInfo.get(socket).t.buf.add(data);
     }
   }

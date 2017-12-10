@@ -147,35 +147,14 @@ public class HttpRequestThread extends Thread {
         dataCell[dataCellOffset - 3] == (int) '\n')) {
       dataCell[11] = (byte) ((dataCellOffset - 14) >> 8);
       dataCell[12] = (byte) (dataCellOffset - 14);
+      for (int i = dataCellOffset; i < 512; i++) {
+        dataCell[i] = 0;
+      }
       writeSocket.getOutputStream().write(dataCell);
       dataCell[11] = (byte) ((512 - 14) >> 8);
       dataCell[12] = (byte) (512 - 14);
       dataCellOffset = 14;
     }
-
-/*
-    int offset = 0;
-
-    while (offset < data.length - (512 - 14)) {
-      dataCell[11] = (byte) ((512 - 14) >> 8);
-      dataCell[12] = (byte) (512 - 14);
-      for (int i = offset; i < offset + 512 - 14; i++) {
-        dataCell[14 + i - offset] = data[i];
-      }
-      writeSocket.getOutputStream().write(dataCell);
-      offset += 512 - 14;
-    }
-
-    if (offset != data.length) {
-      dataCell[11] = (byte) ((data.length - offset) >> 8);
-      dataCell[12] = (byte) (data.length - offset);
-      for (int i = offset; i < data.length; i++) {
-        dataCell[14 + i - offset] = data[i];
-      }
-      writeSocket.getOutputStream().write(dataCell);
-    }
-    System.out.println("HTTPR: ending write");
-    */
   }
 
   /** Handles an HTTP header and body sent from readSocket to writeSocket. */

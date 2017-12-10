@@ -69,9 +69,7 @@ public class HttpRequestThread extends Thread {
       boolean opened = openTorConnection(reader, bufferedLines);
 
       if (line.trim().toLowerCase().startsWith("connect")) {
-        System.out.println("A");
         if (!opened) {
-          System.out.println("B");
           clientSocket.getOutputStream().write("HTTP/1.0 502 Bad Gateway\r\n\r\n".getBytes());
           return;
         }
@@ -86,18 +84,17 @@ public class HttpRequestThread extends Thread {
             }
           }
         }
-        System.out.println("C");
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-        clientSocket.setSoTimeout(0);
-        serverSocket.setSoTimeout(0);
-        (new RawDataRelayThread(clientSocket, serverSocket, streamId, circuitId)).start();
-        System.out.println("D");
-        BufferedStreamReader responseReader = new BufferedStreamReader(responseBuf);
-        int curr;
-        while ((curr = responseReader.read()) != -1) {
-          System.out.print("E");
-          clientSocket.getOutputStream().write(curr);
-        }
+        //clientSocket.setSoTimeout(0);
+        //serverSocket.setSoTimeout(0);
+        //(new RawDataRelayThread(clientSocket, serverSocket, streamId, circuitId)).start();
+        //System.out.println("D");
+        //BufferedStreamReader responseReader = new BufferedStreamReader(responseBuf);
+        //int curr;
+        //while ((curr = responseReader.read()) != -1) {
+        //  System.out.print("E");
+        //  clientSocket.getOutputStream().write(curr);
+        //}
       } else {
         if (serverSocket == null) {
           return;

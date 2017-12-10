@@ -16,7 +16,7 @@ public class BufferedStreamReader {
   private InputStream inputStream;
 
   private BlockingQueue<byte[]> bufStream;
-  List<Byte> leftover;
+  List<Integer> leftover;
 
   /** Sole constructor.
       @param inputStream The InputStream to read from. */
@@ -88,7 +88,7 @@ public class BufferedStreamReader {
             }
             leftover = new ArrayList<>();
             for (int j = 0; j < length - (i - 14) - 1; j++) {
-              leftover.add(buf[j + i + 1]);
+              leftover.add(buf[j + i + 1] & 0xFF);
             }
             //System.out.print("5. " + lineBuilder);
             return lineBuilder.toString();
@@ -120,12 +120,9 @@ public class BufferedStreamReader {
       @return The byte read, or -1 if there is no byte or an error. */
   public int read() {
     if (bufStream != null) {
-      if (leftover != null) { // TODO: remove this loop to speed up
+      if (leftover != null) {
         if (leftover.size() == 1) {
           int result = leftover.get(0);
-          if (result == -1) {
-            System.out.println("WOW 1");
-          }
           leftover = null;
           return result;
         } else {
@@ -136,22 +133,17 @@ public class BufferedStreamReader {
         try {
           buf = bufStream.poll(25000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-          System.out.println("ERROR 1");
           return -1;
         }
         if (buf == null || buf[2] != 3 || buf[13] != 2) {
-          System.out.println("ERROR 2");
           return -1;
         }
         final int length = ((buf[11] & 0xFF) << 8) | (buf[12] & 0xFF);
         if (length != 1) {
           leftover = new ArrayList<>();
           for (int i = 0; i < length - 1; i++) {
-            leftover.add(buf[i + 15]);
+            leftover.add(buf[i + 15] & 0xFF);
           }
-        }
-        if (buf[14] == -1) {
-          System.out.println("WOW 2");
         }
         return buf[14];
       }

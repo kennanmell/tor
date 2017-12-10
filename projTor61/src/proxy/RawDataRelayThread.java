@@ -82,12 +82,12 @@ public class RawDataRelayThread extends Thread {
         writeSocket.getOutputStream().write(message);
       }
     } catch (IOException e) {
-      try {
+      //try {
         //readSocket.close();
-        writeSocket.close();
-      } catch (IOException e2) {
+        //writeSocket.close();
+      //} catch (IOException e2) {
         // no op
-      }
+      //}
       return;
     }
   }

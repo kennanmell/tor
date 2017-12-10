@@ -25,6 +25,7 @@ public class RawDataRelayThread extends Thread {
       this.reader = new BufferedStreamReader(readSocket.getInputStream());
     } catch (IOException e) {
       System.out.println("FATAL ERROR!!!");
+      e.printStackTrace();
       reader = null;
       // TODO: handle better
     }
@@ -82,12 +83,12 @@ public class RawDataRelayThread extends Thread {
         writeSocket.getOutputStream().write(message);
       }
     } catch (IOException e) {
-      //try {
-        //readSocket.close();
+      try {
+        readSocket.close();
         //writeSocket.close();
-      //} catch (IOException e2) {
+      } catch (IOException e2) {
         // no op
-      //}
+      }
       return;
     }
   }

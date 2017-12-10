@@ -91,7 +91,13 @@ public class TorSocketReaderThread extends Thread {
         }
       }
 
-      loop: while (readSocket.getInputStream().read(cell) == 512) {
+      loop: while (true) {
+        int tempc = readSocket.getInputStream().read(cell);
+        if (tempc != 512) {
+          System.out.println("tempc: " + tempc);
+          System.out.println(Arrays.toString(cell));
+          break;
+        }
         //System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
         //if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
         //  System.out.println(RelayCommand.fromByte(cell[13]).toString());
@@ -162,61 +168,62 @@ public class TorSocketReaderThread extends Thread {
                           relayId |= (cell[3] & 0xFF) << 8;
                           relayId |= cell[4] & 0xFF;
                           switch (RelayCommand.fromByte(cell[13])) {
-                            case BEGIN: message[11] = 0;
-                                        message[12] = 0;
-                                        if (responseRelayForStream.containsKey(relayId)) {
-                                          message[13] = RelayCommand.BEGIN_FAILED.toByte();
-                                          SocketManager.writeToSocket(readSocket, message);
-                                        } else {
-                                          int bodyLength = cell[12] & 0xFF;
-                                          bodyLength |= (cell[11] & 0xFF) << 8;
-                                          int colonSeparatorIndex = 0;
-                                          int endIndex = 0;
-                                          for (int i = 14; i < 14 + bodyLength; i++) {
-                                            if (((char) message[i]) == ':') {
-                                              colonSeparatorIndex = i;
-                                            } else if (((char) message[i]) == '\0') {
-                                              endIndex = i;
-                                              break;
-                                            }
-                                          }
-                                          final String ip = (new String(cell)).
-                                              substring(14, colonSeparatorIndex);
-                                          final int iport = Integer.parseInt((new String(cell)).
-                                              substring(colonSeparatorIndex + 1, endIndex));
-                                          Socket webSocket;
-                                          try {
-                                            webSocket = new Socket(ip, iport);
-                                          } catch (IOException e) {
-                                            message[13] = RelayCommand.BEGIN_FAILED.toByte();
-                                            SocketManager.writeToSocket(readSocket, message);
-                                            continue loop;
-                                          }
+                            case BEGIN:  message[11] = 0;
+                                         message[12] = 0;
+                                         if (responseRelayForStream.containsKey(relayId)) {
+                                           message[13] = RelayCommand.BEGIN_FAILED.toByte();
+                                           SocketManager.writeToSocket(readSocket, message);
+                                         } else {
+                                           int bodyLength = cell[12] & 0xFF;
+                                           bodyLength |= (cell[11] & 0xFF) << 8;
+                                           int colonSeparatorIndex = 0;
+                                           int endIndex = 0;
+                                           for (int i = 14; i < 14 + bodyLength; i++) {
+                                             if (((char) message[i]) == ':') {
+                                               colonSeparatorIndex = i;
+                                             } else if (((char) message[i]) == '\0') {
+                                               endIndex = i;
+                                               break;
+                                             }
+                                           }
+                                           final String ip = (new String(cell)).
+                                               substring(14, colonSeparatorIndex);
+                                           final int iport = Integer.parseInt((new String(cell)).
+                                               substring(colonSeparatorIndex + 1, endIndex));
+                                           Socket webSocket;
+                                           try {
+                                             webSocket = new Socket(ip, iport);
+                                             webSocket.setSoTimeout(5000);
+                                           } catch (IOException e) {
+                                             e.printStackTrace();
+                                             message[13] = RelayCommand.BEGIN_FAILED.toByte();
+                                             SocketManager.writeToSocket(readSocket, message);
+                                             continue loop;
+                                           }
 
-                                          RawDataRelayThread responseRelayThread = new RawDataRelayThread(
-                                              readSocket, webSocket, relayId & 0xFFFF, circuitId); // TODO: ok to write directly to this socket?
-                                          responseRelayThread.start();
-                                          responseRelayForStream.put(relayId, responseRelayThread);
-                                          message[13] = RelayCommand.CONNECTED.toByte();
-                                          SocketManager.writeToSocket(readSocket, message);
-                                        }
-                                        break;
-
-                            case DATA: if (responseRelayForStream.containsKey(relayId)) {
-                                         Socket webSocket = responseRelayForStream.get(relayId).readSocket;
-                                         // TODO: ok to write directly to this socket?
-                                         // TODO: how to demultiplex if simultaneous requests to same server from same stream?
-                                         webSocket.getOutputStream().write(message, 14, 512 - 14);
-                                       } else {
-                                       }
-                                       break;
-
-                            case END: if (responseRelayForStream.containsKey(relayId)) {
-                                        responseRelayForStream.get(relayId).kill();
-                                        responseRelayForStream.remove(relayId);
-                                      }
-                                      break;
-
+                                           RawDataRelayThread responseRelayThread = new RawDataRelayThread(
+                                               readSocket, webSocket, relayId & 0xFFFF, circuitId); // TODO: ok to write directly to this socket?
+                                           responseRelayThread.start();
+                                           responseRelayForStream.put(relayId, responseRelayThread);
+                                           message[13] = RelayCommand.CONNECTED.toByte();
+                                           SocketManager.writeToSocket(readSocket, message);
+                                         }
+                                         break;
+                            case DATA:   if (responseRelayForStream.containsKey(relayId)) {
+                                           Socket webSocket = responseRelayForStream.get(relayId).readSocket;
+                                           // TODO: ok to write directly to this socket?
+                                           // TODO: how to demultiplex if simultaneous requests to same server from same stream?
+                                           System.out.println("in data");
+                                           webSocket.getOutputStream().write(message, 14, 512 - 14);
+                                         } else {
+                                           System.out.println("in else");
+                                         }
+                                         break;
+                            case END:    if (responseRelayForStream.containsKey(relayId)) {
+                                           responseRelayForStream.get(relayId).kill();
+                                           responseRelayForStream.remove(relayId);
+                                         }
+                                         break;
                             case EXTEND: message[11] = cell[11];
                                          message[12] = cell[12];
                                          (new RelayExtendThread(message)).start();

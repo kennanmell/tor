@@ -54,6 +54,7 @@ public class HttpRequestThread extends Thread {
   public void run() {
     try {
       // read from browser socket
+      clientSocket.setSoTimeout(5000);
       BufferedStreamReader reader = new BufferedStreamReader(clientSocket.getInputStream());
       String line = reader.readLine();
       if (line == null) {
@@ -85,16 +86,16 @@ public class HttpRequestThread extends Thread {
           }
         }
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-        //clientSocket.setSoTimeout(0);
-        //serverSocket.setSoTimeout(0);
-        //(new RawDataRelayThread(clientSocket, serverSocket, streamId, circuitId)).start();
-        //System.out.println("D");
-        //BufferedStreamReader responseReader = new BufferedStreamReader(responseBuf);
-        //int curr;
-        //while ((curr = responseReader.read()) != -1) {
-        //  System.out.print("E");
-        //  clientSocket.getOutputStream().write(curr);
-        //}
+        clientSocket.setSoTimeout(5000);
+        serverSocket.setSoTimeout(0);
+        System.out.println("2");
+        (new RawDataRelayThread(serverSocket, clientSocket, streamId, circuitId)).start();
+        BufferedStreamReader responseReader = new BufferedStreamReader(responseBuf);
+        int curr;
+        while ((curr = responseReader.read()) != -1) {
+          clientSocket.getOutputStream().write(curr);
+        }
+        clientSocket.close();
       } else {
         if (serverSocket == null) {
           return;
@@ -111,9 +112,9 @@ public class HttpRequestThread extends Thread {
     } catch (IOException e) {
       try {
         clientSocket.close();
-        if (serverSocket != null) {
-          serverSocket.close();
-        }
+        //if (serverSocket != null) {
+        //  serverSocket.close();
+        //}
       } catch (IOException e2) {
         // no op
       }
@@ -205,6 +206,8 @@ public class HttpRequestThread extends Thread {
     while ((curr = reader.read()) != -1) {
       writeSocket.getOutputStream().write(curr);
     }
+
+    writeSocket.close();
     //(new RawDataRelayThread(writeSocket, reader, streamId, circuitId)).run();
   }
 

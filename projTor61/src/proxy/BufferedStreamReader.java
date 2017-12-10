@@ -57,7 +57,7 @@ public class BufferedStreamReader {
       while (true) {
         byte[] buf;
         try {
-          buf = bufStream.poll(25000, TimeUnit.MILLISECONDS);
+          buf = bufStream.poll(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
           if (lineBuilder.length() == 0) {
             //System.out.println("B2");
@@ -131,7 +131,7 @@ public class BufferedStreamReader {
       } else {
         byte[] buf;
         try {
-          buf = bufStream.poll(25000, TimeUnit.MILLISECONDS);
+          buf = bufStream.poll(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
           return -1;
         }
@@ -145,7 +145,7 @@ public class BufferedStreamReader {
             leftover.add(buf[i + 15] & 0xFF);
           }
         }
-        return buf[14];
+        return buf[14] & 0xFF;
       }
     }
     try {

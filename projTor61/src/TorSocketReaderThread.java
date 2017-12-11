@@ -96,6 +96,7 @@ public class TorSocketReaderThread extends Thread {
         if (tempc != 512) {
           System.out.println("KILLED READING: " + tempc);
           System.out.println(Arrays.toString(cell));
+          System.out.println((new String(cell)).substring(14));
           break;
         }
         //System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());

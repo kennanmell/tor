@@ -80,6 +80,9 @@ public class RawDataRelayThread extends Thread {
 
       if (curr > 0) {
         System.arraycopy(cellData, 0, message, 14, curr);
+        for (int i = 14 + curr; i < 512; i++) {
+          message[i] = 0;
+        }
         message[11] = (byte) (curr >> 8);
         message[12] = (byte) curr;
         writeSocket.getOutputStream().write(message);

@@ -97,7 +97,6 @@ public class RawDataRelayThread extends Thread {
       try {
         readSocket.close();
         if (removeWhenDone != null) {
-          System.out.println(this + "; " + removeWhenDone.size());
           removeWhenDone.remove(this.streamId);
         }
         //writeSocket.close();

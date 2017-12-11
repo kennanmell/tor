@@ -218,7 +218,6 @@ public class TorSocketReaderThread extends Thread {
                                            int bodyLength = cell[12] & 0xFF;
                                            bodyLength |= (cell[11] & 0xFF) << 8;
                                            System.out.println("DATA length: " + bodyLength);
-                                           System.out.println((new String(message)).substring(14));
                                            webSocket.getOutputStream().write(message, 14, bodyLength);
                                          } else {
                                          }

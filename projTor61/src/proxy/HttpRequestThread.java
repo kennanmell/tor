@@ -85,14 +85,17 @@ public class HttpRequestThread extends Thread {
             }
           }
         }
+
+        System.out.println("A");
+        (new RawDataRelayThread(serverSocket, clientSocket, streamId, circuitId)).start();
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
         clientSocket.setSoTimeout(5000);
         serverSocket.setSoTimeout(0);
-        System.out.println("2");
-        (new RawDataRelayThread(serverSocket, clientSocket, streamId, circuitId)).start();
+        System.out.println("B");
         BufferedStreamReader responseReader = new BufferedStreamReader(responseBuf);
         int curr;
         while ((curr = responseReader.read()) != -1) {
+          System.out.println("C");
           clientSocket.getOutputStream().write(curr);
         }
         clientSocket.close();

@@ -89,24 +89,23 @@ public class RawDataRelayThread extends Thread {
         }
         writeSocket.getOutputStream().write(message);
       }
-    } catch (IOException e) {
-      try {
-        readSocket.close();
-      } catch (IOException e2) {
-        // no op
-      }
-      // no op
-    }
-/*
-    try {
       readSocket.close();
       if (removeWhenDone != null) {
         removeWhenDone.remove(this.streamId);
       }
-      //writeSocket.close();
-    } catch (IOException e2) {
-      // no op
-    }*/
+    } catch (IOException e) {
+      try {
+        readSocket.close();
+        if (removeWhenDone != null) {
+          System.out.println(this + "; " + removeWhenDone.size());
+          removeWhenDone.remove(this.streamId);
+        }
+        //writeSocket.close();
+      } catch (IOException e2) {
+        // no op
+      }
+      return;
+    }
   }
 
   public void kill() {

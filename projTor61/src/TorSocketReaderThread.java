@@ -92,6 +92,7 @@ public class TorSocketReaderThread extends Thread {
       }
 
       loop: while (true) {
+        System.out.println(this + ": " + responseRelayForStream.size());
         int tempc = readSocket.getInputStream().read(cell);
         if (tempc != 512) {
           break;

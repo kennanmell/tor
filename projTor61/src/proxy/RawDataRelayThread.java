@@ -22,7 +22,6 @@ public class RawDataRelayThread extends Thread {
       @param readSocket The TCP socket to read data from (must not be null).
       @param writeSocket The TCP socket to write data to (must not be null). */
   public RawDataRelayThread(Socket writeSocket, Socket readSocket, int streamId, int circuitId) {
-    System.out.println(this + " started A");
     this.writeSocket = writeSocket;
     try {
       this.reader = new BufferedStreamReader(readSocket.getInputStream());
@@ -40,12 +39,10 @@ public class RawDataRelayThread extends Thread {
 
   public RawDataRelayThread(Socket writeSocket, Socket readSocket, int streamId, int circuitId, Map<Integer, RawDataRelayThread> removeWhenDone) {
     this(writeSocket, readSocket, streamId, circuitId);
-    System.out.println(this + " started B");
     this.removeWhenDone = removeWhenDone;
   }
 
   public RawDataRelayThread(Socket writeSocket, BufferedStreamReader reader, int streamId, int circuitId) {
-    System.out.println(this + " started C");
     this.writeSocket = writeSocket;
     this.reader = reader;
     this.streamId = streamId;
@@ -101,7 +98,6 @@ public class RawDataRelayThread extends Thread {
         writeSocket.getOutputStream().write(message);
       }
       */
-      System.out.println(this + " done reading");
       readSocket.close();
       if (removeWhenDone != null) {
         removeWhenDone.remove(this.streamId);

@@ -86,16 +86,13 @@ public class HttpRequestThread extends Thread {
           }
         }
 
-        System.out.println("A");
         (new RawDataRelayThread(serverSocket, clientSocket, streamId, circuitId)).start();
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
         clientSocket.setSoTimeout(0);
         serverSocket.setSoTimeout(0);
-        System.out.println("B");
         BufferedStreamReader responseReader = new BufferedStreamReader(responseBuf);
         int curr;
         while ((curr = responseReader.read()) != -1) {
-          System.out.println("C");
           clientSocket.getOutputStream().write(curr);
         }
         clientSocket.close();
@@ -199,7 +196,6 @@ public class HttpRequestThread extends Thread {
     endCell[5] = (byte) streamId;
     endCell[13] = 3; // end
     serverSocket.getOutputStream().write(endCell);
-    System.out.println("ended");
     //(new RawDataRelayThread(writeSocket, reader, streamId, circuitId)).run();
   }
 

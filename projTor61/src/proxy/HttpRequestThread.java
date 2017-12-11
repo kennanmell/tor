@@ -187,6 +187,16 @@ public class HttpRequestThread extends Thread {
     }
 
     writeSocket.close();
+
+    byte[] endCell = new byte[512];
+    endCell[0] = (byte) (circuitId >> 8);
+    endCell[1] = (byte) circuitId;
+    endCell[2] = 3; // relay
+    endCell[4] = (byte) (streamId >> 8);
+    endCell[5] = (byte) streamId;
+    endCell[13] = 3; // end
+    serverSocket.getOutputStream().write(endCell);
+    System.out.println("ended");
     //(new RawDataRelayThread(writeSocket, reader, streamId, circuitId)).run();
   }
 

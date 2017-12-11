@@ -139,7 +139,7 @@ public class RegAgentThread extends Thread {
       service = new Service(localhostIp, iport, agentId, "Tor61Router-" + String.format("%04d", groupNo) + "-" +
               String.format("%04d", instanceNo));
     }
-    candidates.add(service);
+    //candidates.add(service);
     return candidates;
   }
 }

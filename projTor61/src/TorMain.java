@@ -125,7 +125,7 @@ public class TorMain {
     // Extend three times.
     int extendSuccesses = 0;
     Service extendServiceCandidate;
-    for (int i = 0; i < copiedCandidates.size(); i++) {
+    while (!copiedCandidates.isEmpty()) {
       if (extendSuccesses == 3) {
         break;
       }
@@ -181,7 +181,7 @@ public class TorMain {
       }
     }
 
-    System.out.println("after: " + candidates);
+    System.out.println("done: " + candidates);
     while (extendSuccesses < 3 && !candidates.isEmpty()) { // todo: can't have empty
       System.out.println("whileing");
       extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));

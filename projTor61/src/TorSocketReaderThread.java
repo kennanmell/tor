@@ -190,8 +190,15 @@ public class TorSocketReaderThread extends Thread {
                                            }
                                            final String ip = (new String(cell)).
                                                substring(14, colonSeparatorIndex);
-                                           final int iport = Integer.parseInt((new String(cell)).
-                                               substring(colonSeparatorIndex + 1, endIndex));
+                                           int iport;
+                                           try {
+                                             iport = Integer.parseInt((new String(cell)).
+                                                 substring(colonSeparatorIndex + 1, endIndex));
+                                           } catch (NumberFormatException e1) {
+                                             message[13] = RelayCommand.BEGIN_FAILED.toByte();
+                                             SocketManager.writeToSocket(readSocket, message);
+                                             continue loop;
+                                           }
                                            Socket webSocket;
                                            try {
                                              webSocket = new Socket(ip, iport);

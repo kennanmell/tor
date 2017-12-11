@@ -181,6 +181,7 @@ public class TorMain {
 
 
     while (extendSuccesses < 3 && !candidates.isEmpty()) { // todo: can't have empty
+      System.out.println("whileing");
       extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
       if (extendSuccesses == 1) {
         extendServiceCandidate = candidates.get(candidates.size() - 1);

@@ -116,6 +116,8 @@ public class TorSocketReaderThread extends Thread {
           BlockingQueue<byte[]> extendBuffer = SocketManager.getRelayExtendBufferForSocket(readSocket);
           if (extendBuffer != null) {
             System.out.println("HERE56");
+            System.out.println(Arrays.toString(cell));
+            System.out.println();
             extendBuffer.add(message);
             continue loop;
           }

@@ -213,7 +213,9 @@ public class TorSocketReaderThread extends Thread {
                                            Socket webSocket = responseRelayForStream.get(relayId).readSocket;
                                            // TODO: ok to write directly to this socket?
                                            // TODO: how to demultiplex if simultaneous requests to same server from same stream?
-                                           webSocket.getOutputStream().write(message);
+                                           int bodyLength = extendCell[12] & 0xFF;
+                                           bodyLength |= (extendCell[11] & 0xFF) << 8;
+                                           webSocket.getOutputStream().write(message, 14, bodyLength);
                                          } else {
                                          }
                                          break;

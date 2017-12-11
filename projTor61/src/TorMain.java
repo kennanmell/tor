@@ -124,6 +124,7 @@ public class TorMain {
     Collections.shuffle(copiedCandidates);
     // Extend three times.
     int extendSuccesses = 0;
+    Service extendServiceCandidate;
     for (int i = 0; i < copiedCandidates.size(); i++) {
       if (extendSuccesses == 3) {
         break;
@@ -180,7 +181,7 @@ public class TorMain {
 
 
     while (extendSuccesses < 3 && !candidates.isEmpty()) { // todo: can't have empty
-      Service extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
+      extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
       if (extendSuccesses == 1) {
         extendServiceCandidate = candidates.get(candidates.size() - 1);
       }

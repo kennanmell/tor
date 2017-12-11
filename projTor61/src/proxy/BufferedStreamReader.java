@@ -116,6 +116,17 @@ public class BufferedStreamReader {
     }
   }
 
+  public int readChunk(byte[] cell) {
+    if (bufStream != null) {
+      throw new IllegalStateException("not yet implemented");
+    }
+    try {
+      return inputStream.read(cell);
+    } catch (IOException e) {
+      return 0;
+    }
+  }
+
   /** Reads and returns the next byte from the InputStream.
       @return The byte read, or -1 if there is no byte or an error. */
   public int read() {

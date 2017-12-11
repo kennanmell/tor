@@ -71,6 +71,20 @@ public class RawDataRelayThread extends Thread {
     int offset = 14;
 
     try {
+      byte[] cellData = new byte[512 - 14];
+      int curr;
+      while ((curr = reader.readChunk(cellData)) == (512 - 14)) {
+        System.arraycopy(cellData, 0, message, 14, 512 - 14);
+        writeSocket.getOutputStream().write(message);
+      }
+
+      if (curr > 0) {
+        System.arraycopy(cellData, 0, message, 14, curr);
+        message[11] = (byte) (curr >> 8);
+        message[12] = (byte) curr;
+        writeSocket.getOutputStream().write(message);
+      }
+      /*
       int curr;
       while ((curr = reader.read()) != -1) {
         System.out.println(this + " read");
@@ -93,6 +107,7 @@ public class RawDataRelayThread extends Thread {
         }
         writeSocket.getOutputStream().write(message);
       }
+      */
       readSocket.close();
       if (removeWhenDone != null) {
         removeWhenDone.remove(this.streamId);

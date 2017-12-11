@@ -213,7 +213,7 @@ public class TorSocketReaderThread extends Thread {
                                            }
 
                                            RawDataRelayThread responseRelayThread = new RawDataRelayThread(
-                                               readSocket, webSocket, relayId, circuitId, responseRelayForStream); // TODO: ok to write directly to this socket?
+                                               readSocket, webSocket, relayId, circuitId, responseRelayForStream, SocketManager.bufferForSocket(readSocket)); // TODO: ok to write directly to this socket?
                                            responseRelayThread.start();
                                            responseRelayForStream.put(relayId, responseRelayThread);
                                            message[13] = RelayCommand.CONNECTED.toByte();

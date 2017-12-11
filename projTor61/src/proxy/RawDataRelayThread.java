@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 
 /** RawDataRelayThread reads data byte-by-byte from from a TCP socket until it closes, and
     writes that data byte-by-byte to another TCP socket. Can be used for HTTP connect requests. */
@@ -17,6 +18,7 @@ public class RawDataRelayThread extends Thread {
   private int circuitId;
   private boolean killed;
   private Map<Integer, RawDataRelayThread> removeWhenDone;
+  private BlockingQueue<byte[]> buf;
 
   /** Sole constructor.
       @param readSocket The TCP socket to read data from (must not be null).
@@ -37,9 +39,10 @@ public class RawDataRelayThread extends Thread {
     this.readSocket = readSocket;
   }
 
-  public RawDataRelayThread(Socket writeSocket, Socket readSocket, int streamId, int circuitId, Map<Integer, RawDataRelayThread> removeWhenDone) {
+  public RawDataRelayThread(Socket writeSocket, Socket readSocket, int streamId, int circuitId, Map<Integer, RawDataRelayThread> removeWhenDone, BlockingQueue<byte[]> buf) {
     this(writeSocket, readSocket, streamId, circuitId);
     this.removeWhenDone = removeWhenDone;
+    this.buf = buf;
   }
 
   public RawDataRelayThread(Socket writeSocket, BufferedStreamReader reader, int streamId, int circuitId) {
@@ -72,32 +75,14 @@ public class RawDataRelayThread extends Thread {
         System.arraycopy(cellData, 0, message, 14, curr);
         message[11] = (byte) (curr >> 8);
         message[12] = (byte) curr;
-        writeSocket.getOutputStream().write(message);
-      }
-      /*
-      int curr;
-      while ((curr = reader.read()) != -1) {
-        System.out.println(this + " read");
-        message[offset] = (byte) curr;
-        offset++;
-        if (offset == 512) {
+        if (buf == null) {
           writeSocket.getOutputStream().write(message);
-          offset = 14;
-        }
-        if (killed) {
-          break;
+        } else {
+          byte[] messageCopy = new byte[512];
+          System.arraycopy(message, 0, messageCopy, 0, 512);
+          buf.add(messageCopy);
         }
       }
-
-      if (offset != 14) {
-        message[11] = (byte) ((offset - 14) >> 8);
-        message[12] = (byte) (offset - 14);
-        for (int i = offset; i < 512; i++) {
-          message[i] = 0;
-        }
-        writeSocket.getOutputStream().write(message);
-      }
-      */
       readSocket.close();
       if (removeWhenDone != null) {
         removeWhenDone.remove(this.streamId);

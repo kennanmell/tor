@@ -57,6 +57,17 @@ public class SocketManager {
     }
   }
 
+  public static BlockingQueue<byte[]> bufferForSocket(Socket socket) {
+    synchronized (socketToInfo) {
+      if (socketToInfo.containsKey(socket)) {
+        // Need this check in case 2 readers try to write to the same socket, then one removes
+        // it before the second writes.
+        return socketToInfo.get(socket).t.buf;
+      }
+      return null;
+    }
+  }
+
   /** Calls `removeSocket` on all `Socket`s in the `SocketManager`. Should be called before
       shutting tor down. */
   public static void removeAllSockets() {

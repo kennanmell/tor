@@ -39,8 +39,8 @@ public class RawDataRelayThread extends Thread {
   }
 
   public RawDataRelayThread(Socket writeSocket, Socket readSocket, int streamId, int circuitId, Map<Integer, RawDataRelayThread> removeWhenDone) {
-    System.out.println(this + " started B");
     this(writeSocket, readSocket, streamId, circuitId);
+    System.out.println(this + " started B");
     this.removeWhenDone = removeWhenDone;
   }
 

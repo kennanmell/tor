@@ -121,6 +121,7 @@ public class TorMain {
     }
 
     List<Service> copiedCandidates = new ArrayList<>(candidates);
+    copiedCandidates.remove(copiedCandidates.size() - 1);
     Collections.shuffle(copiedCandidates);
     // Extend three times.
     int extendSuccesses = 0;

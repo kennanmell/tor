@@ -150,13 +150,17 @@ public class BufferedStreamReader {
           return -1;
         }
         final int length = ((buf[11] & 0xFF) << 8) | (buf[12] & 0xFF);
-        if (length != 1) {
+        if (length > 1) {
           leftover = new ArrayList<>();
           for (int i = 0; i < length - 1; i++) {
             leftover.add(buf[i + 15] & 0xFF);
           }
         }
-        return buf[14] & 0xFF;
+        if (length == 0) {
+          return -1;
+        } else {
+          return buf[14] & 0xFF;
+        }
       }
     }
     try {

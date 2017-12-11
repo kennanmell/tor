@@ -11,6 +11,7 @@ import java.util.Random;
 import regagent.RegAgentThread;
 import regagent.Service;
 import proxy.ProxyThread;
+import java.util.Collections;
 
 /** `TorMain` sets up and runs a tor node. */
 public class TorMain {
@@ -119,8 +120,65 @@ public class TorMain {
       }
     }
 
-    // Extend twice.
+    List<Service> copiedCandidates = new ArrayList<>(candidates);
+    Collections.shuffle(copiedCandidates);
+    // Extend three times.
     int extendSuccesses = 0;
+    for (int i = 0; i < copiedCandidates.size(); i++) {
+      if (extendSuccesses == 3) {
+        break;
+      }
+
+      extendServiceCandidate = copiedCandidates.remove(0);
+      System.out.println("Main: extending connection with " + extendServiceCandidate);
+      try {
+        // Send relay extend.
+        byte[] ipStrBytes = (extendServiceCandidate.ip.getHostAddress() +
+            ":" + extendServiceCandidate.iport + '\0').getBytes();
+        byte[] extendCell = new byte[512];
+        extendCell[1] = 1;
+        extendCell[2] = TorCommand.RELAY.toByte();
+        extendCell[11] = (byte) ((ipStrBytes.length + 4) >> 8);
+        extendCell[12] = (byte) (ipStrBytes.length + 4);
+        extendCell[13] = RelayCommand.EXTEND.toByte();
+        System.arraycopy(ipStrBytes, 0, extendCell, 14, ipStrBytes.length);
+        extendCell[14 + ipStrBytes.length] = (byte) (extendServiceCandidate.data >> 24); // agent id
+        extendCell[15 + ipStrBytes.length] = (byte) (extendServiceCandidate.data >> 16);
+        extendCell[16 + ipStrBytes.length] = (byte) (extendServiceCandidate.data >> 8);
+        extendCell[17 + ipStrBytes.length] = (byte) extendServiceCandidate.data;
+        gatewaySocket.getOutputStream().write(extendCell);
+
+        // Read relay extended.
+        byte[] extendResponse = new byte[512];
+        while (true) {
+          if (gatewaySocket.getInputStream().read(extendResponse) != 512) {
+            System.out.println("Main: extend failed 1");
+            System.out.println(Arrays.toString(extendResponse));
+            break;
+          } else {
+            if (extendResponse[2] == TorCommand.RELAY.toByte() &&
+                extendResponse[13] == RelayCommand.EXTENDED.toByte()) {
+              System.out.println("Main: extend succeeded");
+              extendSuccesses++;
+              break;
+            //} else if (extendResponse[2] != TorCommand.RELAY.toByte() ||
+            //      extendResponse[13] != RelayCommand.EXTEND_FAILED.toByte()) {
+            //  // Probably intercepted self-loop communication, try again.
+            //  gatewaySocket.getOutputStream().write(extendResponse);
+            } else {
+              System.out.println("Main: extend failed 1");
+              System.out.println(Arrays.toString(extendResponse));
+              break;
+            }
+          }
+        }
+      } catch (IOException e) {
+        System.out.println("Main: extend failed");
+        e.printStackTrace();
+      }
+    }
+
+
     while (extendSuccesses < 3 && !candidates.isEmpty()) { // todo: can't have empty
       Service extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));
       if (extendSuccesses == 1) {

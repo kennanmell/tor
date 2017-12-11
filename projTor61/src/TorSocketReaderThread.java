@@ -343,6 +343,7 @@ public class TorSocketReaderThread extends Thread {
       if (newAgentId == TorMain.agentId) {
         message[13] = RelayCommand.EXTENDED.toByte();
         SocketManager.writeToSocket(readSocket, message);
+        System.out.println("Relay extend: finished 2");
         return;
       }
 
@@ -442,6 +443,7 @@ public class TorSocketReaderThread extends Thread {
       message[13] = RelayCommand.EXTENDED.toByte();
       SocketManager.writeToSocket(readSocket, message);
       SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
+      System.out.println("Relay extend: done");
     }
   }
 }

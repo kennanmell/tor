@@ -130,7 +130,9 @@ public class TorMain {
         break;
       }
 
+      System.out.println("before: " + copiedCandidates);
       extendServiceCandidate = copiedCandidates.remove(0);
+      System.out.println("after: " + copiedCandidates);
       System.out.println("Main: extending connection with " + extendServiceCandidate);
       try {
         // Send relay extend.
@@ -179,7 +181,7 @@ public class TorMain {
       }
     }
 
-
+    System.out.println("after: " + candidates);
     while (extendSuccesses < 3 && !candidates.isEmpty()) { // todo: can't have empty
       System.out.println("whileing");
       extendServiceCandidate = candidates.get(r.nextInt(candidates.size()));

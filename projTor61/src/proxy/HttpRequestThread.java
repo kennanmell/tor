@@ -139,7 +139,6 @@ public class HttpRequestThread extends Thread {
       dataCell[dataCellOffset] = data[i];
       dataCellOffset++;
       if (dataCellOffset == 512) {
-        System.out.println("1. " + Arrays.toString(dataCell));
         writeSocket.getOutputStream().write(dataCell);
         dataCellOffset = 14;
       }
@@ -152,7 +151,6 @@ public class HttpRequestThread extends Thread {
       for (int i = dataCellOffset; i < 512; i++) {
         dataCell[i] = 0;
       }
-      System.out.println("2. " + Arrays.toString(dataCell));
       writeSocket.getOutputStream().write(dataCell);
       dataCell[11] = (byte) ((512 - 14) >> 8);
       dataCell[12] = (byte) (512 - 14);

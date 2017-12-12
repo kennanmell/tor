@@ -35,23 +35,18 @@ public class BufferedStreamReader {
     String line;
     if (bufStream != null) {
       if (leftover != null) {
-        //System.out.println("LEFTOVER:");
-        //System.out.println(new String(leftover));
         for (int i = 0; i < leftover.size(); i++) {
           char current = (char) leftover.get(i).byteValue();
           lineBuilder.append(current);
           if (current == '\n') {
             if (i == leftover.size() - 1) {
               leftover = null;
-              //System.out.print("0. " + lineBuilder);
               return lineBuilder.toString();
             }
             leftover = new ArrayList<>(leftover.subList(i + 1, leftover.size()));
-            //System.out.print("1. " + lineBuilder);
             return lineBuilder.toString();
           }
         }
-        //System.out.println("C2");
         leftover = null;
       }
       while (true) {
@@ -60,19 +55,15 @@ public class BufferedStreamReader {
           buf = bufStream.poll(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
           if (lineBuilder.length() == 0) {
-            //System.out.println("B2");
             return null;
           } else {
-            //System.out.print("2. " + lineBuilder);
             return lineBuilder.toString();
           }
         }
         if (buf == null || buf[2] != 3 || buf[13] != 2) {
           if (lineBuilder.length() == 0) {
-            //System.out.println("B4");
             return null;
           } else {
-            //System.out.print("3. " + lineBuilder);
             return lineBuilder.toString();
           }
         }
@@ -83,14 +74,12 @@ public class BufferedStreamReader {
           if (current == '\n') {
             if (i == 13 + length) {
               leftover = null;
-              //System.out.print("4. " + lineBuilder);
               return lineBuilder.toString();
             }
             leftover = new ArrayList<>();
             for (int j = 0; j < length - (i - 14) - 1; j++) {
               leftover.add(buf[j + i + 1] & 0xFF);
             }
-            //System.out.print("5. " + lineBuilder);
             return lineBuilder.toString();
           }
         }
@@ -166,8 +155,6 @@ public class BufferedStreamReader {
     try {
       return inputStream.read();
     } catch (IOException e) {
-      e.printStackTrace();
-      System.out.println("ERROR 3");
       return -1;
     }
   }

@@ -33,14 +33,17 @@ public class SharedDataDistributionThread extends Thread {
           }
         }
       }
-      System.out.println("DISTRIBUTION ENDED: " + curr);
+      if (curr != -1) {
+        System.out.println("the monster bug killed me");
+        System.exit(0);
+      }
+      //System.out.println("DISTRIBUTION ENDED: " + curr);
     } catch (IOException e) {
-      // TODO: better error handling
-      e.printStackTrace();
-      return;
+      System.out.println("the monster bug killed me");
+      System.exit(0);
     } catch (InterruptedException e) {
-      // TODO: better error handling
-      return;
+      System.out.println("the monster bug killed me");
+      System.exit(0);
     }
   }
 

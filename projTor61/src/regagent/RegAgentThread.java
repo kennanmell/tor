@@ -120,7 +120,7 @@ public class RegAgentThread extends Thread {
   public void unregisterService() {
     requestHandler.unregisterService(service);
     registrationRenewer.removeService(service);
-    System.out.println("unregistered service");
+    //System.out.println("unregistered service");
   }
 
   // Return all reported services available

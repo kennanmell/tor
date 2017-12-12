@@ -38,6 +38,7 @@ public class ProxyThread extends Thread {
     } catch (Exception e) {
       // TODO
       System.out.println("unable to bind to proxy port");
+      System.exit(0);
       return;
     }
 
@@ -47,7 +48,13 @@ public class ProxyThread extends Thread {
     // Accept new TCP connections until proxy is closed.
     while (true) {
       try {
-        (new HttpRequestThread(serverSocket.accept(), null, gatewaySocket)).start();
+        (new HttpRequestThread(serverSocket.accept(), new HttpRequestThread.HttpRequestListener() {
+          @Override
+          public void onRequestReceived(String firstHeaderLine) {
+            System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) +
+                             " - >>> " + firstHeaderLine);
+          }
+        }, gatewaySocket)).start();
       } catch (IOException e) {
         continue;
       }

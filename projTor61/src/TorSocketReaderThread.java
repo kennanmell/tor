@@ -73,9 +73,6 @@ public class TorSocketReaderThread extends Thread {
 
   @Override
   public void run() {
-    System.out.println("started DHH thread " + this.toString());
-    TorSocketReaderThread.threadCount++;
-    System.out.println("threads: " + TorSocketReaderThread.threadCount + " sockets: " + SocketManager.size());
     try {
       byte[] cell = new byte[512];
       if (!SocketManager.socketWasInitiated(readSocket)) {
@@ -93,11 +90,12 @@ public class TorSocketReaderThread extends Thread {
 
       loop: while (true) {
         int tempc = readSocket.getInputStream().read(cell);
-        if (tempc != 512) {
-          System.out.println("KILLED READING: " + tempc);
-          System.out.println(Arrays.toString(cell));
-          System.out.println((new String(cell)).substring(14));
+        if (tempc == -1) {
           break;
+        }
+        if (tempc != 512) {
+          System.out.println("the monster bug killed me");
+          System.exit(0);
         }
         //System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
         //if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
@@ -115,9 +113,6 @@ public class TorSocketReaderThread extends Thread {
             command == TorCommand.CREATED || command == TorCommand.CREATE_FAILED) {
           BlockingQueue<byte[]> extendBuffer = SocketManager.getRelayExtendBufferForSocket(readSocket);
           if (extendBuffer != null) {
-            System.out.println("HERE56");
-            System.out.println(Arrays.toString(cell));
-            System.out.println();
             extendBuffer.add(message);
             continue loop;
           }
@@ -158,6 +153,8 @@ public class TorSocketReaderThread extends Thread {
           SocketManager.writeToSocket(nextHop.s, message);
           if (command == TorCommand.DESTROY) {
             hopTable.remove(currentHop);
+            System.out.println("circuit was destroyed");
+            System.exit(0);
           }
         } else {
           // This thread has the mapping and it's at the end of the circuit, so it needs
@@ -167,6 +164,8 @@ public class TorSocketReaderThread extends Thread {
                           SocketManager.writeToSocket(readSocket, message);
                           break;
             case DESTROY: hopTable.remove(currentHop);
+                          System.out.println("circuit was destroyed");
+                          System.exit(0);
                           break;
             case RELAY:   int relayId = circuitId << 16;
                           relayId |= (cell[3] & 0xFF) << 8;
@@ -206,7 +205,6 @@ public class TorSocketReaderThread extends Thread {
                                              webSocket = new Socket(ip, iport);
                                              webSocket.setSoTimeout(5000);
                                            } catch (IOException e) {
-                                             e.printStackTrace();
                                              message[13] = RelayCommand.BEGIN_FAILED.toByte();
                                              SocketManager.writeToSocket(readSocket, message);
                                              continue loop;
@@ -247,7 +245,6 @@ public class TorSocketReaderThread extends Thread {
         }
       }
     } catch (IOException e) {
-      e.printStackTrace();
     }
 
     for (int key : responseRelayForStream.keySet()) {
@@ -260,8 +257,6 @@ public class TorSocketReaderThread extends Thread {
       // no op; closing anyway
     }
     TorSocketReaderThread.threadCount--;
-    System.out.println(this + ": killed thread");
-    System.out.println("threads: " + TorSocketReaderThread.threadCount + " sockets: " + SocketManager.size());
   }
 
   /** Responds to an open cell from a tor node. */
@@ -306,7 +301,6 @@ public class TorSocketReaderThread extends Thread {
 
     @Override
     public void run() {
-      System.out.println("Relay Extend: starting");
       // Get the data from the relay extend cell.
       byte[] message = new byte[512];
       System.arraycopy(extendCell, 0, message, 0, 512);
@@ -330,7 +324,6 @@ public class TorSocketReaderThread extends Thread {
       try {
         iport = Integer.parseInt(new String(extendCell).substring(colonSeparatorIndex + 1, endIndex));
       } catch (NumberFormatException e) {
-        e.printStackTrace();
         // TODO: handle?
       }
       final String ip = (new String(extendCell)).substring(14, colonSeparatorIndex);
@@ -343,7 +336,6 @@ public class TorSocketReaderThread extends Thread {
       if (newAgentId == TorMain.agentId) {
         message[13] = RelayCommand.EXTENDED.toByte();
         SocketManager.writeToSocket(readSocket, message);
-        System.out.println("Relay extend: finished 2");
         return;
       }
 
@@ -353,9 +345,7 @@ public class TorSocketReaderThread extends Thread {
         try {
           nextHopSocket = new Socket(ip, iport);
         } catch (IOException e) {
-          e.printStackTrace();
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
-          System.out.println("ISSUE 5");
           SocketManager.writeToSocket(readSocket, message);
           return;
         }
@@ -375,7 +365,6 @@ public class TorSocketReaderThread extends Thread {
         openCell[8] = extendCell[endIndex + 2];
         openCell[9] = extendCell[endIndex + 3];
         openCell[10] = extendCell[endIndex + 4];
-        System.out.println("HEY SENDING OPEN");
         SocketManager.writeToSocket(nextHopSocket, openCell);
 
         byte[] opened;
@@ -385,7 +374,6 @@ public class TorSocketReaderThread extends Thread {
           SocketManager.removeSocket(nextHopSocket);
           SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
-          System.out.println("ISSUE 4");
           SocketManager.writeToSocket(readSocket, message);
           return;
         }
@@ -394,7 +382,6 @@ public class TorSocketReaderThread extends Thread {
           SocketManager.removeSocket(nextHopSocket);
           SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
           message[13] = RelayCommand.EXTEND_FAILED.toByte();
-          System.out.println("ISSUE 3");
           SocketManager.writeToSocket(readSocket, message);
           return;
         }
@@ -416,7 +403,6 @@ public class TorSocketReaderThread extends Thread {
         SocketManager.removeSocket(nextHopSocket);
         SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
         message[13] = RelayCommand.EXTEND_FAILED.toByte();
-        System.out.println("ISSUE 2");
         SocketManager.writeToSocket(readSocket, message);
         return;
       }
@@ -426,7 +412,6 @@ public class TorSocketReaderThread extends Thread {
         SocketManager.removeSocket(nextHopSocket);
         SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
         message[13] = RelayCommand.EXTEND_FAILED.toByte();
-        System.out.println("ISSUE 1");
         SocketManager.writeToSocket(readSocket, message);
         return;
       }
@@ -444,7 +429,6 @@ public class TorSocketReaderThread extends Thread {
       message[13] = RelayCommand.EXTENDED.toByte();
       SocketManager.writeToSocket(readSocket, message);
       SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);
-      System.out.println("Relay extend: done");
     }
   }
 }

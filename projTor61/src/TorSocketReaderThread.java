@@ -93,7 +93,6 @@ public class TorSocketReaderThread extends Thread {
         while (totalRead < 512) {
           int currentRead = readSocket.getInputStream().read(cell, totalRead, 512 - totalRead);
           if (currentRead == -1) {
-            System.out.println("COULDN'T READ 512");
             break loop;
           }
           totalRead += currentRead;

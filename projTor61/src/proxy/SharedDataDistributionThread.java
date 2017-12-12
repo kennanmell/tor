@@ -28,8 +28,7 @@ public class SharedDataDistributionThread extends Thread {
         while (totalRead < 512) {
           int currentRead = readSocket.getInputStream().read(buf, totalRead, 512 - totalRead);
           if (currentRead == -1) {
-            System.out.println("they monster bug killed me");
-            System.exit(0);
+            break; // TODO: fix this
           }
           totalRead += currentRead;
         }

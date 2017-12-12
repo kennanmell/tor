@@ -335,7 +335,7 @@ public class TorSocketReaderThread extends Thread {
         newAgentId |= (extendCell[i] & 0xFF) << ((bodyLength + 13 - i) * 8);
       }
 
-      int circuitId = ((cell[0] & 0xFF) << 8) | ((cell[1] & 0xFF));
+      int circuitId = ((extendCell[0] & 0xFF) << 8) | ((extendCell[1] & 0xFF));
 
       if (newAgentId == TorMain.agentId) {
         System.out.println("extended circuit: " + circuitId);

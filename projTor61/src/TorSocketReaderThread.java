@@ -131,6 +131,7 @@ public class TorSocketReaderThread extends Thread {
           // This thread doesn't have the circuit mapping, so it can only handle a create
           // cell or relay extend cell in this case.
           if (command == TorCommand.CREATE) {
+            System.out.println("accepted new circuit: " + circuitId);
             hopTable.put(currentHop, null);
             message[2] = TorCommand.CREATED.toByte();
             SocketManager.writeToSocket(readSocket, message);
@@ -224,6 +225,7 @@ public class TorSocketReaderThread extends Thread {
                                            // TODO: how to demultiplex if simultaneous requests to same server from same stream?
                                            int bodyLength = cell[12] & 0xFF;
                                            bodyLength |= (cell[11] & 0xFF) << 8;
+                                           System.out.println("sending data to web server");
                                            webSocket.getOutputStream().write(message, 14, bodyLength);
                                          } else {
                                          }
@@ -333,7 +335,10 @@ public class TorSocketReaderThread extends Thread {
         newAgentId |= (extendCell[i] & 0xFF) << ((bodyLength + 13 - i) * 8);
       }
 
+      int circuitId = ((cell[0] & 0xFF) << 8) | ((cell[1] & 0xFF));
+
       if (newAgentId == TorMain.agentId) {
+        System.out.println("extended circuit: " + circuitId);
         message[13] = RelayCommand.EXTENDED.toByte();
         SocketManager.writeToSocket(readSocket, message);
         return;
@@ -426,6 +431,7 @@ public class TorSocketReaderThread extends Thread {
       }
       hopTable.put(currentHop, newHop);
       hopTable.put(newHop, currentHop);
+      System.out.println("extended circuit: " + circuitId);
       message[13] = RelayCommand.EXTENDED.toByte();
       SocketManager.writeToSocket(readSocket, message);
       SocketManager.setRelayExtendBufferForSocket(nextHopSocket, null);

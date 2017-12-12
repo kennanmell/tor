@@ -59,10 +59,8 @@ public class SharedDataDistributionThread extends Thread {
       */
       //System.out.println("DISTRIBUTION ENDED: " + curr);
     } catch (IOException e) {
-      System.out.println("the monster bug killed me");
       System.exit(0);
     } catch (InterruptedException e) {
-      System.out.println("the monster bug killed me");
       System.exit(0);
     }
   }

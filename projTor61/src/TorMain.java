@@ -36,6 +36,7 @@ public class TorMain {
     }
 
     TorMain.agentId = (groupNo << 16) | instanceNo; // router number
+    System.out.println("Welcome to tor61 node " + TorMain.agentId + "!");
 
     // correct order:
     // 1. make local circuit
@@ -156,7 +157,7 @@ public class TorMain {
           } else {
             if (extendResponse[2] == TorCommand.RELAY.toByte() &&
                 extendResponse[13] == RelayCommand.EXTENDED.toByte()) {
-                System.out.println("  Extended tor circuit to agent " + extendServiceCandidate.data +
+                System.out.println("  Extended tor circuit to node " + extendServiceCandidate.data +
                     " at " + extendServiceCandidate.ip.getHostAddress() +
                     ":" + extendServiceCandidate.iport);
               extendSuccesses++;
@@ -172,7 +173,6 @@ public class TorMain {
       }
     }
 
-    System.out.println("created tor circuit!");
     return gatewaySocket;
   }
 }

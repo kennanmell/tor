@@ -153,7 +153,7 @@ public class TorSocketReaderThread extends Thread {
           SocketManager.writeToSocket(nextHop.s, message);
           if (command == TorCommand.DESTROY) {
             hopTable.remove(currentHop);
-            System.out.println("circuit was destroyed");
+            System.out.println("circuit was destroyed...");
             System.exit(0);
           }
         } else {
@@ -164,7 +164,7 @@ public class TorSocketReaderThread extends Thread {
                           SocketManager.writeToSocket(readSocket, message);
                           break;
             case DESTROY: hopTable.remove(currentHop);
-                          System.out.println("circuit was destroyed");
+                          System.out.println("circuit was destroyed...");
                           System.exit(0);
                           break;
             case RELAY:   int relayId = circuitId << 16;

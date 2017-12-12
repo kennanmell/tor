@@ -91,7 +91,7 @@ public class RegAgentThread extends Thread {
   @Override
   public void run() {
     // Handle probes from server.
-    System.out.println("Reg Agent: running agent");
+    System.out.println("registering tor node...");
     probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID, null);
     probeHandler.start();
 
@@ -125,7 +125,8 @@ public class RegAgentThread extends Thread {
 
   // Return all reported services available
   public List<Service> getAllServices() {
-    List<Service> candidates = new ArrayList<>(Arrays.asList(requestHandler.fetchServicesBeginningWith("Tor61Router-3471-")));
+    List<Service> candidates = new ArrayList<>(Arrays.asList(
+        requestHandler.fetchServicesBeginningWith("Tor61Router-" + agentId + "-")));
     // Register the service.
     InetAddress localhostIp = null;
     try {

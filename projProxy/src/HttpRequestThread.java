@@ -76,7 +76,7 @@ public class HttpRequestThread extends Thread {
         }
 
         clientSocket.getOutputStream().write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-        clientSocket.setSoTimeout(0);
+        clientSocket.setSoTimeout(10000);
         serverSocket.setSoTimeout(0);
         (new RawDataRelayThread(clientSocket, serverSocket)).start();
         (new RawDataRelayThread(serverSocket, clientSocket)).run();

@@ -89,13 +89,14 @@ public class TorSocketReaderThread extends Thread {
       }
 
       loop: while (true) {
-        int tempc = readSocket.getInputStream().read(cell);
-        if (tempc == -1) {
-          break;
-        }
-        if (tempc != 512) {
-          System.out.println("the monster bug killed me");
-          System.exit(0);
+        int totalRead = 0;
+        while (totalRead < 512) {
+          int currentRead = readSocket.getInputStream().read(cell, totalRead, 512 - totalRead);
+          if (currentRead == -1) {
+            System.out.println("COULDN'T READ 512");
+            break loop;
+          }
+          totalRead += currentRead;
         }
         //System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
         //if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {

@@ -22,7 +22,27 @@ public class SharedDataDistributionThread extends Thread {
   public void run() {
     try {
       readSocket.setSoTimeout(0); // remove this later
-      byte[] buf = new byte[512];
+      while (true) {
+        byte[] buf = new byte[512];
+        int totalRead = 0;
+        while (totalRead < 512) {
+          int currentRead = readSocket.getInputStream().read(buf, totalRead, 512 - totalRead);
+          if (currentRead == -1) {
+            System.out.println("they monster bug killed me");
+            System.exit(0);
+          }
+          totalRead += currentRead;
+        }
+
+        int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
+        synchronized (pendingRequests) {
+          if (pendingRequests.containsKey(streamId)) {
+            pendingRequests.get(streamId).put(buf);
+            buf = new byte[512];
+          }
+        }
+      }
+/*
       int curr;
       while ((curr = readSocket.getInputStream().read(buf)) == 512) {
         int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
@@ -37,6 +57,7 @@ public class SharedDataDistributionThread extends Thread {
         System.out.println("the monster bug killed me");
         System.exit(0);
       }
+      */
       //System.out.println("DISTRIBUTION ENDED: " + curr);
     } catch (IOException e) {
       System.out.println("the monster bug killed me");

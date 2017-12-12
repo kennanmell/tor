@@ -124,7 +124,7 @@ public class HttpRequestThread extends Thread {
 
   private byte[] dataCell = new byte[512];
   private int dataCellOffset = 14;
-  
+
   private void writeTorData(Socket writeSocket, byte[] data) throws IOException {
     dataCell[0] = (byte) (circuitId >> 8);
     dataCell[1] = (byte) circuitId;
@@ -190,7 +190,7 @@ public class HttpRequestThread extends Thread {
     }
 
     writeSocket.close();
-
+    /*
     byte[] endCell = new byte[512];
     endCell[0] = (byte) (circuitId >> 8);
     endCell[1] = (byte) circuitId;
@@ -198,7 +198,7 @@ public class HttpRequestThread extends Thread {
     endCell[4] = (byte) (streamId >> 8);
     endCell[5] = (byte) streamId;
     endCell[13] = 3; // end
-    serverSocket.getOutputStream().write(endCell);
+    serverSocket.getOutputStream().write(endCell);*/
     //(new RawDataRelayThread(writeSocket, reader, streamId, circuitId)).run();
   }
 

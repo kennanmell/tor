@@ -94,11 +94,10 @@ public class TorSocketReaderThread extends Thread {
       loop: while (true) {
         int tempc = readSocket.getInputStream().read(cell);
         if (tempc != 512) {
-          System.out.println("SHOULD KILL READING " + tempc);
-          continue;
-          //System.out.println(Arrays.toString(cell));
-          //System.out.println((new String(cell)).substring(14));
-          //break;
+          System.out.println("KILLED READING: " + tempc);
+          System.out.println(Arrays.toString(cell));
+          System.out.println((new String(cell)).substring(14));
+          break;
         }
         //System.out.println(this.toString() + ": processing " + TorCommand.fromByte(cell[2]).toString());
         //if (TorCommand.fromByte(cell[2]) == TorCommand.RELAY) {
@@ -376,6 +375,7 @@ public class TorSocketReaderThread extends Thread {
         openCell[8] = extendCell[endIndex + 2];
         openCell[9] = extendCell[endIndex + 3];
         openCell[10] = extendCell[endIndex + 4];
+        System.out.println("HEY SENDING OPEN");
         SocketManager.writeToSocket(nextHopSocket, openCell);
 
         byte[] opened;

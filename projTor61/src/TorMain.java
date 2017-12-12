@@ -86,6 +86,7 @@ public class TorMain {
         openCell[8] = (byte) (gatewayServiceCandidate.data >> 16);
         openCell[9] = (byte) (gatewayServiceCandidate.data >> 8);
         openCell[10] = (byte) gatewayServiceCandidate.data;
+        System.out.println("HEY SENDING OPEN");
         gatewaySocket.getOutputStream().write(openCell);
 
         // Read opened.

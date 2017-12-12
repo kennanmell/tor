@@ -35,6 +35,7 @@ public class TorSocketWriterThread extends Thread {
         socket.getOutputStream().write(curr);
       } catch (IOException e) {
         e.printStackTrace();
+        return;
       }
     }
   }

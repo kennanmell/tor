@@ -124,6 +124,7 @@ public class HttpRequestThread extends Thread {
 
   private byte[] dataCell = new byte[512];
   private int dataCellOffset = 14;
+  
   private void writeTorData(Socket writeSocket, byte[] data) throws IOException {
     dataCell[0] = (byte) (circuitId >> 8);
     dataCell[1] = (byte) circuitId;

@@ -23,7 +23,8 @@ public class SharedDataDistributionThread extends Thread {
     try {
       readSocket.setSoTimeout(0); // remove this later
       byte[] buf = new byte[512];
-      while (readSocket.getInputStream().read(buf) == 512) {
+      int curr;
+      while ((curr = readSocket.getInputStream().read(buf)) == 512) {
         int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
         synchronized (pendingRequests) {
           if (pendingRequests.containsKey(streamId)) {
@@ -32,6 +33,7 @@ public class SharedDataDistributionThread extends Thread {
           }
         }
       }
+      System.out.println("DISTRIBUTION ENDED: " + curr);
     } catch (IOException e) {
       // TODO: better error handling
       e.printStackTrace();

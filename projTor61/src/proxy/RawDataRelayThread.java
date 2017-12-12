@@ -89,6 +89,7 @@ public class RawDataRelayThread extends Thread {
       }
     } catch (IOException e) {
       System.out.println(this + " exception");
+      e.printStackTrace();
       try {
         readSocket.close();
         if (removeWhenDone != null) {

@@ -4,12 +4,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.List;
 
 /** Runs a command-line interface that allows the user to act as the client of an
     agent via a simple command line interface. The agent communicates with
@@ -48,6 +50,7 @@ public class RegAgentThread extends Thread {
     this.groupNo = groupNo;
     this.instanceNo = instanceNo;
     this.agentId = agentId;
+    this.iport = iport;
 
     InetAddress serverAddress;
     try {
@@ -88,6 +91,7 @@ public class RegAgentThread extends Thread {
   @Override
   public void run() {
     // Handle probes from server.
+    System.out.println("registering tor node...");
     probeHandler = new ProbeHandlerThread(readSocket, MAGIC_ID, null);
     probeHandler.start();
 
@@ -104,7 +108,7 @@ public class RegAgentThread extends Thread {
     }
     final String serviceName = "Tor61Router-" + String.format("%04d", groupNo) + "-" +
         String.format("%04d", instanceNo);
-    Service service = new Service(localhostIp, iport, agentId, serviceName);
+    service = new Service(localhostIp, iport, agentId, serviceName);
     if (requestHandler.registerService(service)) {
       registrationRenewer.addService(service);
     } else {
@@ -112,19 +116,29 @@ public class RegAgentThread extends Thread {
     }
   }
 
+  // Unregisters the service associated with the tor server.
+  public void unregisterService() {
+    requestHandler.unregisterService(service);
+    registrationRenewer.removeService(service);
+    //System.out.println("unregistered service");
+  }
+
   // Return all reported services available
-  public Set<Service> getAllServices() {
-    //Random r = new Random();
-    Service[] candidates = requestHandler.fetchServicesBeginningWith("Tor61Router");
-    if (candidates.length == 0) {
+  public List<Service> getAllServices() {
+    List<Service> candidates = new ArrayList<>(Arrays.asList(
+        requestHandler.fetchServicesBeginningWith("Tor61Router-" + groupNo + "-")));
+    // Register the service.
+    InetAddress localhostIp = null;
+    try {
+      localhostIp = InetAddress.getLocalHost();
+    } catch (UnknownHostException e) {
       // TODO
     }
-    return new HashSet<Service>(Arrays.asList(candidates));
-    /*Service[] result = new Service[CIRCUIT_LENGTH];
-    for (int i = 0; i < result.length; i++) {
-      result[i] = candidates[r.nextInt(candidates.length)];
-    }*/
-
-    //return result;
+    if (service == null) {
+      service = new Service(localhostIp, iport, agentId, "Tor61Router-" + String.format("%04d", groupNo) + "-" +
+              String.format("%04d", instanceNo));
+    }
+    candidates.add(service);
+    return candidates;
   }
 }

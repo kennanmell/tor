@@ -2,6 +2,7 @@ package proxy;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -20,20 +21,46 @@ public class SharedDataDistributionThread extends Thread {
   @Override
   public void run() {
     try {
-      byte[] buf = new byte[512];
-      while (readSocket.getInputStream().read(buf) == 512) {
+      readSocket.setSoTimeout(0); // remove this later
+      while (true) {
+        byte[] buf = new byte[512];
+        int totalRead = 0;
+        while (totalRead < 512) {
+          int currentRead = readSocket.getInputStream().read(buf, totalRead, 512 - totalRead);
+          if (currentRead == -1) {
+            break; // TODO: fix this
+          }
+          totalRead += currentRead;
+        }
+
         int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
         synchronized (pendingRequests) {
           if (pendingRequests.containsKey(streamId)) {
             pendingRequests.get(streamId).put(buf);
+            buf = new byte[512];
           }
         }
       }
+/*
+      int curr;
+      while ((curr = readSocket.getInputStream().read(buf)) == 512) {
+        int streamId = ((buf[3] & 0xFF) << 8 | (buf[4] & 0xFF));
+        synchronized (pendingRequests) {
+          if (pendingRequests.containsKey(streamId)) {
+            pendingRequests.get(streamId).put(buf);
+            buf = new byte[512];
+          }
+        }
+      }
+      if (curr != -1) {
+        System.out.println("the monster bug killed me");
+        System.exit(0);
+      }
+      */
+      //System.out.println("DISTRIBUTION ENDED: " + curr);
     } catch (IOException e) {
-      // TODO: better error handling
       System.exit(0);
     } catch (InterruptedException e) {
-      // TODO: better error handling
       System.exit(0);
     }
   }

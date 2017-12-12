@@ -12,6 +12,7 @@ import java.util.Date;
     tunneling. Takes a port number as a command line argument. */
 public class ProxyThread extends Thread {
   /// The port number to accept connections on.
+  public static SharedDataDistributionThread distributorThread;
   private int iport;
   public final int circuitId;
   private Socket gatewaySocket;
@@ -37,15 +38,23 @@ public class ProxyThread extends Thread {
     } catch (Exception e) {
       // TODO
       System.out.println("unable to bind to proxy port");
+      System.exit(0);
       return;
     }
 
-    (new SharedDataDistributionThread(gatewaySocket)).start();
+    ProxyThread.distributorThread = new SharedDataDistributionThread(gatewaySocket);
+    distributorThread.start();
 
     // Accept new TCP connections until proxy is closed.
     while (true) {
       try {
-        (new HttpRequestThread(serverSocket.accept(), null)).start();
+        (new HttpRequestThread(serverSocket.accept(), new HttpRequestThread.HttpRequestListener() {
+          @Override
+          public void onRequestReceived(String firstHeaderLine) {
+            System.out.print(new SimpleDateFormat("dd MMM HH:mm:ss").format(new Date()) +
+                             " - >>> " + firstHeaderLine);
+          }
+        }, gatewaySocket)).start();
       } catch (IOException e) {
         continue;
       }
